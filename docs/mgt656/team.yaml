@@ -1,0 +1,7 @@
+framework: django
+database: postgres
+members:
+  - nickname: TBD # Sijie
+  - nickname: TBD # Leo
+  - nickname: TBD # Aziz
+  - nickname: TBD # Ofir
