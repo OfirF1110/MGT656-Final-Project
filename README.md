@@ -12,17 +12,17 @@ Before a meeting or application, I review the contact’s history, generate a pr
 
 # Core features for the MVP
 
-Contact management: Private accounts; create, edit, search, and tag contacts with roles, companies, relationship stages, and last-contact dates.
+- Contact management: Private accounts; create, edit, search, and tag contacts with roles, companies, relationship stages, and last-contact dates.
 
-Network view: A contact list and simple relationship graph showing manually recorded connections.
+- Network view: A contact list and simple relationship graph showing manually recorded connections.
 
-Meeting history: Log conversations, link attendees, and retain editable notes and summaries.
+- Meeting history: Log conversations, link attendees, and retain editable notes and summaries.
 
-Follow-up tasks: Review suggested actions, assign due dates, and mark tasks complete or dismissed.
+- Follow-up tasks: Review suggested actions, assign due dates, and mark tasks complete or dismissed.
 
-Recruiting workspace: Save opportunities manually and find existing contacts at the same company.
+- Recruiting workspace: Save opportunities manually and find existing contacts at the same company.
 
-Out of scope: automated job-board crawling, LinkedIn synchronization, email or calendar integrations, and automatic message sending.
+- Out of scope: automated job-board crawling, LinkedIn synchronization, email or calendar integrations, and automatic message sending.
 
 # AI feature
 
