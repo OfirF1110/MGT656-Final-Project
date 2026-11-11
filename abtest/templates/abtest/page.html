@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h1 class="h2 mb-3">Kudos or thanks?</h1>
+  <p>Our team:</p>
+  <ul>
+    {% for nickname in nicknames %}
+      <li>{{ nickname }}</li>
+    {% endfor %}
+  </ul>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" id="abtest" class="btn btn-primary">{{ variant }}</button>
+  </form>
+{% endblock %}
