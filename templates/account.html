@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h1 class="h2 mb-3">Your account</h1>
+  <p class="text-break">Logged in as {{ user.username }}.</p>
+  {% if user.is_staff %}
+    <a href="/admin/" class="btn btn-outline-primary">Django administration</a>
+  {% endif %}
+{% endblock %}
