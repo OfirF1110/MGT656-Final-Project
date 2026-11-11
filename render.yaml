@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: mgt656-staging
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: bash build.sh
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -
+    healthCheckPath: /health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: GRADER_ADMIN_USERNAME
+        sync: false
+      - key: GRADER_ADMIN_PASSWORD
+        sync: false
+      - key: GRADER_MEMBER_USERNAME
+        sync: false
+      - key: GRADER_MEMBER_PASSWORD
+        sync: false
