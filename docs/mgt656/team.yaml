@@ -1,7 +1,11 @@
 framework: django
 database: postgres
 members:
-  - nickname: brainy-squid # Sijie
-  - nickname: amused-cobra # Leo
-  - nickname: outstanding-flamingo # Aziz
-  - nickname: cooperative-butterfly # Ofir
+  - nickname: brainy-squid
+    github: Mars3922
+  - nickname: amused-cobra
+    github: Leo-odyssey
+  - nickname: outstanding-flamingo
+    github: azizochilov
+  - nickname: cooperative-butterfly
+    github: OfirF1110
