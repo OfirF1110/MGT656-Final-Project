@@ -16,7 +16,7 @@ if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
 CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")]
 INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
-    "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles", "core",
+    "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles", "core", "abtest",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware", "whitenoise.middleware.WhiteNoiseMiddleware",
