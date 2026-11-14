@@ -10,7 +10,7 @@ def home(request):
 
 @login_required
 def account(request):
-    return render(request, "account.html")
+    return render(request, "account.html", {"nav_active": "account"})
 
 def health(request):
     try:

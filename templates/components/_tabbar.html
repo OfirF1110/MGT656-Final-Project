@@ -1,0 +1,16 @@
+{% with view=request.resolver_match.view_name %}
+<nav class="app-tabbar" aria-label="Main">
+  <a href="{% url 'contacts:list' %}" class="app-tab{% if nav_active == 'contacts' and view != 'contacts:create' %} active{% endif %}"
+     {% if nav_active == 'contacts' and view != 'contacts:create' %}aria-current="page"{% endif %}>
+    <i class="bi bi-people" aria-hidden="true"></i><span>Contacts</span>
+  </a>
+  <a href="{% url 'contacts:create' %}" class="app-tab app-tab--add{% if view == 'contacts:create' %} active{% endif %}"
+     {% if view == 'contacts:create' %}aria-current="page"{% endif %}>
+    <span class="app-tab-add-icon" aria-hidden="true"><i class="bi bi-plus-lg"></i></span><span>Add</span>
+  </a>
+  <a href="{% url 'account' %}" class="app-tab{% if nav_active == 'account' %} active{% endif %}"
+     {% if nav_active == 'account' %}aria-current="page"{% endif %}>
+    <i class="bi bi-person-circle" aria-hidden="true"></i><span>Account</span>
+  </a>
+</nav>
+{% endwith %}

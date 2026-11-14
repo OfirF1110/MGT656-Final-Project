@@ -94,3 +94,32 @@ class StyleguideTests(TestCase):
         self.assertEqual(response.status_code, 200)
         for label in ("To contact", "Awaiting reply", "In conversation", "Meeting set", "Met", "Inactive"):
             self.assertContains(response, label)
+
+
+class ResponsiveShellTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("shell-user", password="Shell-Test-Pass-482!")
+        self.client.force_login(self.user)
+
+    def test_viewport_allows_safe_area_insets(self):
+        html = self.client.get("/account/").content.decode()
+        self.assertIn('content="width=device-width, initial-scale=1, viewport-fit=cover"', html)
+
+    def test_bottom_tab_bar_links_contacts_add_and_account(self):
+        html = self.client.get("/contacts/").content.decode()
+        start = html.index('<nav class="app-tabbar"')
+        tabbar = html[start:html.index("</nav>", start)]
+        self.assertIn('href="/contacts/"', tabbar)
+        self.assertIn('href="/contacts/new/"', tabbar)
+        self.assertIn('href="/account/"', tabbar)
+        self.assertIn('aria-current="page"', tabbar)
+
+    def test_account_page_offers_log_out_in_content(self):
+        html = self.client.get("/account/").content.decode()
+        main = html[html.index('<main id="main"'):]
+        self.assertIn('<form method="post" action="/logout/"', main)
+
+    def test_public_pages_have_no_tab_bar(self):
+        self.client.logout()
+        for url in ("/login/", "/020c45f"):
+            self.assertNotIn("app-tabbar", self.client.get(url).content.decode())

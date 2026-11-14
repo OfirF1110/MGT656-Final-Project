@@ -82,6 +82,20 @@
       if (trigger) trigger.focus();
     });
 
+    // On touch devices, hide the bottom tab bar while the on-screen keyboard is up
+    // (a text field has focus), so it doesn't cover what you're typing.
+    var coarse = window.matchMedia && window.matchMedia("(pointer: coarse)");
+    var TYPING = "input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=submit]), textarea";
+    document.addEventListener("focusin", function (event) {
+      if (coarse && coarse.matches && event.target.matches(TYPING)) document.body.classList.add("kbd-open");
+    });
+    document.addEventListener("focusout", function () {
+      setTimeout(function () {
+        var active = document.activeElement;
+        if (!active || !active.matches(TYPING)) document.body.classList.remove("kbd-open");
+      }, 60);
+    });
+
     // Drop any htmx history snapshots when logging out (belt and braces; the cache is off).
     document.addEventListener("submit", function (event) {
       var action = event.target.getAttribute("action") || "";

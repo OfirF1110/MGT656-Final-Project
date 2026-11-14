@@ -30,6 +30,7 @@
   --oc-shadow-pop: 0 8px 24px rgba(19, 26, 42, .14), 0 2px 6px rgba(19, 26, 42, .06);
   --oc-focus: 0 0 0 3px rgba(76, 91, 212, .28);
   --oc-sidebar-width: 232px;
+  --oc-tabbar-height: 60px;
 
   --bs-primary: #4C5BD4;
   --bs-primary-rgb: 76, 91, 212;
@@ -130,7 +131,7 @@ textarea.form-control { min-height: 120px; line-height: 1.55; }
 .form-text { color: var(--oc-muted); font-size: .78125rem; margin-top: 6px; }
 .field-error { color: var(--oc-danger); font-size: .8125rem; margin-top: 6px; display: flex; gap: 6px; align-items: flex-start; }
 .field { margin-bottom: 20px; }
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.field-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 .form-alert {
   background: #FCEEEE; color: var(--oc-danger); border: 1px solid #F2C9C6;
   border-radius: var(--oc-radius); padding: 10px 12px; margin-bottom: 20px; font-size: .8125rem;
@@ -140,7 +141,7 @@ textarea.form-control { min-height: 120px; line-height: 1.55; }
 /* ---------- Public pages (login, landing, A/B) ---------- */
 body.public { min-height: 100vh; }
 .public-main {
-  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 40px 16px;
 }
 .public-wordmark {
@@ -191,21 +192,62 @@ body.public { min-height: 100vh; }
 }
 .app-logout:hover { color: #fff; background: rgba(255, 255, 255, .06); }
 
-.app-main { margin-left: var(--oc-sidebar-width); min-height: 100vh; }
-.app-content { max-width: 1200px; padding: 36px 48px 72px; }
+.app-main { min-height: 100vh; min-height: 100dvh; min-width: 0; }
+/* No container queries here: they would trap the phone bottom sheet (position: fixed) inside the content box. */
+.app-content { max-width: 1200px; padding: 20px 16px 40px; }
 
-.app-topbar { display: none; }
+/* Below 1024px: sticky top bar + bottom tab bar (zhiji / intake / yale-radar pattern). */
+.app-sidebar { display: none; }
+.app-topbar {
+  display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 1020;
+  height: calc(52px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 8px 0 16px;
+  background: var(--oc-ink);
+}
+.app-topbar .app-wordmark { flex: 1; }
+.topbar-actions { display: flex; justify-content: flex-end; min-width: 44px; }
 .topbar-button {
   width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
-  border: 0; background: none; color: #fff; border-radius: var(--oc-radius); font-size: 1.375rem;
+  border: 0; background: none; color: #fff; border-radius: var(--oc-radius); font-size: 1.25rem;
 }
 .topbar-button:hover { background: rgba(255, 255, 255, .08); color: #fff; }
-.app-offcanvas {
-  --bs-offcanvas-width: 280px; --bs-offcanvas-bg: var(--oc-ink); --bs-offcanvas-color: var(--oc-ink-text);
-  padding: 8px 12px 16px; display: flex; flex-direction: column;
+
+.app-tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 1030;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  height: calc(var(--oc-tabbar-height) + env(safe-area-inset-bottom));
+  padding: 0 8px env(safe-area-inset-bottom);
+  background: rgba(255, 255, 255, .96); border-top: 1px solid var(--oc-line);
+  transition: transform .2s ease;
 }
-.app-offcanvas-head { display: flex; align-items: center; justify-content: space-between; padding: 0 0 12px 10px; }
-.app-offcanvas .app-nav-link, .app-offcanvas .app-account-link, .app-offcanvas .app-logout { min-height: 44px; }
+@supports (backdrop-filter: blur(12px)) {
+  .app-tabbar { background: rgba(255, 255, 255, .82); backdrop-filter: saturate(1.4) blur(12px); }
+}
+.app-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  color: var(--oc-muted); font-size: .6875rem; font-weight: 500; text-decoration: none;
+}
+.app-tab:hover { color: var(--oc-text); text-decoration: none; }
+.app-tab .bi { font-size: 1.375rem; line-height: 1; }
+.app-tab.active { color: var(--oc-accent); }
+.app-tab-add-icon {
+  width: 34px; height: 34px; border-radius: 50%; background: var(--oc-accent); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.app-tab-add-icon .bi { font-size: 1.125rem; }
+.app-tab--add.active { color: var(--oc-accent); }
+.app-main { padding-bottom: calc(var(--oc-tabbar-height) + env(safe-area-inset-bottom)); }
+/* While typing on a phone, the tab bar steps out of the way of the keyboard. */
+body.kbd-open .app-tabbar { transform: translateY(110%); }
+
+@media (min-width: 1024px) {
+  .app-sidebar { display: flex; }
+  .app-topbar, .app-tabbar { display: none; }
+  .app-main { margin-left: var(--oc-sidebar-width); padding-bottom: 0; }
+  .app-content { padding: 36px 48px 72px; }
+}
+@media (min-width: 600px) and (max-width: 1023.98px) {
+  .app-content { padding: 28px 32px 48px; }
+}
 
 /* ---------- Page structure ---------- */
 .page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -233,25 +275,29 @@ body.public { min-height: 100vh; }
 .oc-toast.is-leaving { opacity: 0; transform: translateY(4px); transition: opacity .2s, transform .2s; }
 @keyframes oc-toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-/* ---------- Mobile shell ---------- */
+/* ---------- Touch and narrow screens ---------- */
+html, body { overflow-x: clip; }
+a, button, summary, .btn { touch-action: manipulation; }
+.page-title, .contact-name, .notes-body, .detail-list dd { overflow-wrap: anywhere; }
+@media (max-width: 1023.98px) {
+  .toast-stack { left: 16px; right: 16px; bottom: calc(var(--oc-tabbar-height) + env(safe-area-inset-bottom) + 12px); align-items: center; }
+  .oc-toast { max-width: 480px; }
+  .list-actions { display: none; }
+}
 @media (max-width: 767.98px) {
   :root { --bs-body-font-size: .9375rem; }
-  .app-sidebar { display: none; }
-  .app-main { margin-left: 0; }
-  .app-topbar {
-    display: flex; align-items: center; gap: 4px; position: sticky; top: 0; z-index: 1020;
-    height: 52px; padding: 0 4px; background: var(--oc-ink);
-  }
-  .app-topbar .app-wordmark { flex: 1; text-align: center; }
-  .topbar-actions { width: 44px; display: flex; justify-content: flex-end; }
-  .app-content { padding: 20px 16px 72px; }
   .page-title { font-size: 1.375rem; }
+  .public-card { padding: 24px; }
+}
+/* Fingers, not mice: 44px targets, 16px inputs (no iOS zoom), no sticky hover. */
+@media (pointer: coarse) {
   .form-control, .form-select { font-size: 16px; min-height: 44px; }
   .btn { min-height: 44px; }
-  .field-row { grid-template-columns: 1fr; gap: 0; }
-  .toast-stack { left: 16px; right: 16px; bottom: 16px; align-items: stretch; }
-  .oc-toast { max-width: none; }
-  .public-card { padding: 24px; }
+  .back-link { min-height: 44px; }
+}
+@media (hover: none) {
+  .contact-row:hover { background: transparent; }
+  .stage-caret { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -314,8 +360,15 @@ body.public { min-height: 100vh; }
 }
 .detail-grid {
   display: grid; gap: 16px; align-items: start;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  grid-template-areas: "rel info" "notes info" "conn info";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "rel" "info" "notes" "conn";
+}
+/* Two columns only when the content area is ~860px+: wide tablets without the sidebar, or 1200px+ with it. */
+@media (min-width: 900px) and (max-width: 1023.98px), (min-width: 1200px) {
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+    grid-template-areas: "rel info" "notes info" "conn info";
+  }
 }
 .detail-grid > .panel + .panel { margin-top: 0; }
 .detail-relationship { grid-area: rel; }
@@ -336,16 +389,30 @@ body.public { min-height: 100vh; }
 .form-panel { max-width: 680px; padding: 24px; }
 .page-head + .form-panel { margin-top: 0; }
 
-@media (max-width: 767.98px) {
+/* Touch layout (below 1024px): Edit in the top bar, Edit/Delete at the end of the page. */
+@media (max-width: 1023.98px) {
   .detail-head .page-actions { display: none; }
-  .detail-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "rel" "info" "notes" "conn"; }
+}
+@media (max-width: 767.98px) {
   .detail-avatar { width: 40px; height: 40px; font-size: 1rem; }
-  .stage-trigger { min-height: 44px; }
-  .stage-caret { opacity: 1; }
-  .stage-popover { width: min(260px, calc(100vw - 48px)); }
-  .stage-option { min-height: 44px; font-size: .875rem; }
+}
+@media (max-width: 599.98px) {
+  .field-row { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .form-panel { padding: 16px; }
   .form-actions .btn { flex: 1; }
+  .confirm-panel { padding: 20px; }
+}
+/* Below 1024px the primary form action stays within thumb reach, above the tab bar (headsup dock pattern). */
+@media (max-width: 1023.98px) {
+  .form-panel .form-actions {
+    position: sticky; z-index: 5; bottom: calc(var(--oc-tabbar-height) + env(safe-area-inset-bottom));
+    margin: 8px -24px -24px; padding: 12px 24px; background: rgba(255, 255, 255, .96);
+    border-top: 1px solid var(--oc-line); border-radius: 0 0 var(--oc-radius-lg) var(--oc-radius-lg);
+  }
+  body.kbd-open .form-panel .form-actions { bottom: 0; }
+}
+@media (max-width: 599.98px) {
+  .form-panel .form-actions { margin: 8px -16px -16px; padding: 12px 16px; }
 }
 
 /* ---------- Contact list ---------- */
@@ -391,8 +458,8 @@ body.public { min-height: 100vh; }
 .empty-title { font-weight: 600; font-size: 1rem; margin: 0 0 4px; }
 .empty-body { color: var(--oc-muted); margin: 0 0 16px; max-width: 360px; }
 
+/* Phones: rows become cards (zhiji month-table pattern). */
 @media (max-width: 767.98px) {
-  .list-actions { display: none; }
   .toolbar { gap: 8px; }
   .search-field { flex: 1 1 100%; max-width: none; }
   .stage-filter { flex: 1 1 auto; }
@@ -422,7 +489,6 @@ body.public { min-height: 100vh; }
 }
 .confirm-title { font-size: 1.25rem; font-weight: 600; margin: 0 0 8px; }
 .confirm-body { color: var(--oc-muted); margin-bottom: 20px; }
-@media (max-width: 767.98px) { .confirm-panel { padding: 20px; } }
 
 /* ---------- htmx request states ---------- */
 #contact-results { transition: opacity .12s; }
@@ -451,7 +517,8 @@ body.public { min-height: 100vh; }
   .stage-menu[open] .stage-popover {
     position: fixed; z-index: 1056; left: 0; right: 0; bottom: 0; top: auto; width: auto;
     border-radius: 16px 16px 0 0; border: 0; padding: 8px 12px calc(16px + env(safe-area-inset-bottom));
-    max-height: 85vh; overflow-y: auto; animation: oc-sheet-in .2s ease-out;
+    max-width: 560px; margin: 0 auto;
+    max-height: 88vh; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain; animation: oc-sheet-in .2s ease-out;
   }
   .stage-sheet-title {
     display: block; font-weight: 600; font-size: 1rem; margin: 0; padding: 12px 8px 8px;
@@ -461,7 +528,14 @@ body.public { min-height: 100vh; }
     content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--oc-line-strong);
     margin: -4px auto 12px;
   }
-  .detail-mobile-actions { display: flex; gap: 8px; margin-top: 16px; }
+}
+@media (max-width: 1023.98px) {
+  .detail-mobile-actions { display: flex; gap: 8px; margin-top: 16px; max-width: 560px; }
   .detail-mobile-actions .btn { flex: 1; }
+}
+/* Touch: 44px stage controls everywhere a finger is the pointer. */
+@media (pointer: coarse) {
+  .stage-trigger { min-height: 44px; }
+  .stage-option { min-height: 44px; font-size: .875rem; }
 }
 @keyframes oc-sheet-in { from { transform: translateY(24px); opacity: .6; } to { transform: none; opacity: 1; } }

@@ -41,7 +41,7 @@ python manage.py makemigrations --check --dry-run
 4. **No secrets in git.** Configuration comes from environment variables. Schema changes only through migrations.
 5. **Tests:** every change ships with Django tests. Mock the LLM and any external service; tests never use the network.
 6. **UI:** follow `docs/design/ui-guidelines.md`. Logged-in pages extend `app.html`. Pages must work without JS;
-   htmx only enhances. Check 1440px and 390px widths.
+   htmx only enhances. Check 1440px, 820px and 390px widths (the shell switches at 1024px).
 7. **Pull requests:** branch per issue (`<issue>-short-name`), PR says `Closes #<issue>`, a teammate reviews before merge.
    The description has three sections: what the AI agent produced, what we changed or rejected and why, how to test.
    A story is Done only after someone checks it on staging.
