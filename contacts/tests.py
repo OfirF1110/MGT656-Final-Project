@@ -401,3 +401,27 @@ class HtmxTests(LoggedInTestCase):
     def test_history_restore_gets_full_page(self):
         response = self.client.get("/contacts/", HTTP_HX_REQUEST="true", HTTP_HX_HISTORY_RESTORE_REQUEST="true")
         self.assertIn("<html", response.content.decode())
+
+
+class PolishTests(LoggedInTestCase):
+    def test_detail_has_phone_actions_with_delete(self):
+        contact = Contact.objects.create(owner=self.alice, name="Amy Chen")
+        html = self.client.get(f"/contacts/{contact.pk}/").content.decode()
+        start = html.index('class="detail-mobile-actions"')
+        block = html[start:html.index("</div>", start)]
+        self.assertIn(f'href="/contacts/{contact.pk}/delete/"', block)
+        self.assertIn(f'href="/contacts/{contact.pk}/edit/"', block)
+
+    def test_stage_menu_has_sheet_title_for_phones(self):
+        contact = Contact.objects.create(owner=self.alice, name="Amy Chen")
+        self.assertContains(self.client.get("/contacts/"), "Change stage for Amy Chen")
+
+    def test_no_results_with_stage_filter_mentions_stage(self):
+        Contact.objects.create(owner=self.alice, name="Amy Chen", company="Goldman Sachs")
+        response = self.client.get("/contacts/", {"q": "gold", "stage": "met"})
+        self.assertContains(response, "No contacts match &quot;gold&quot; in Met")
+
+    def test_name_field_has_no_example_value(self):
+        html = self.client.get("/contacts/new/").content.decode()
+        name_input = html[html.index('id="id_name"') - 200: html.index('id="id_name"') + 50]
+        self.assertNotIn("placeholder", name_input)

@@ -56,7 +56,9 @@
       if (menu.matches && menu.matches("details.stage-menu") && menu.open) closeStageMenus(menu);
     }, true);
     document.addEventListener("click", function (event) {
-      if (!event.target.closest("details.stage-menu")) closeStageMenus(null);
+      // Outside a menu, or on the phone sheet's backdrop (the <details> itself): close.
+      var menu = event.target.closest("details.stage-menu");
+      if (!menu || event.target === menu) closeStageMenus(null);
     });
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") return;

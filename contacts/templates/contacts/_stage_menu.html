@@ -11,6 +11,7 @@
     {% csrf_token %}
     <input type="hidden" name="context" value="{{ menu_context }}">
     <input type="hidden" name="next" value="{{ next_url }}">
+    <p class="stage-sheet-title">Change stage for {{ contact.name }}</p>
     {% for group_label, stages in stage_menu %}
       <div class="stage-group" role="group" aria-label="{{ group_label }}">
         <div class="stage-group-label" aria-hidden="true">{{ group_label }}</div>

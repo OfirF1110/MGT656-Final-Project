@@ -26,9 +26,8 @@ class ContactForm(forms.ModelForm):
         if self.instance.pk:
             self.initial.setdefault("stage", self.instance.stage)
             self.initial.setdefault("tags", self.instance.tag_string)
-        self.fields["name"].widget.attrs.update({"autocomplete": "off", "placeholder": "Amy Chen"})
-        self.fields["company"].widget.attrs["placeholder"] = "Goldman Sachs"
-        self.fields["role"].widget.attrs["placeholder"] = "Vice President"
+        # Placeholders only where they show a format, so empty fields never look filled in.
+        self.fields["name"].widget.attrs["autocomplete"] = "off"
         self.fields["linkedin_url"].widget.attrs["placeholder"] = "linkedin.com/in/amychen"
         self.fields["tags"].widget.attrs["placeholder"] = "finance, alumni"
 

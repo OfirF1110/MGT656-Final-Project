@@ -18,7 +18,7 @@
 {% elif is_filtered %}
   <div class="empty-state">
     <div class="empty-icon" aria-hidden="true"><i class="bi bi-search"></i></div>
-    <p class="empty-title">{% if q %}No contacts match &quot;{{ q }}&quot;{% else %}No contacts in this stage{% endif %}</p>
+    <p class="empty-title">{% if q %}No contacts match &quot;{{ q }}&quot;{% if stage_label %} in {{ stage_label }}{% endif %}{% else %}No contacts in {{ stage_label }}{% endif %}</p>
     <p class="empty-body">Try a different name, company, or tag.</p>
     <a href="{% url 'contacts:list' %}" class="btn btn-quiet">Clear search</a>
   </div>

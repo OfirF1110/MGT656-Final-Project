@@ -59,4 +59,9 @@
       </section>
     {% endif %}
   </div>
+
+  <div class="detail-mobile-actions">
+    <a href="{% url 'contacts:edit' contact.pk %}" class="btn btn-quiet"><i class="bi bi-pencil" aria-hidden="true"></i>Edit</a>
+    <a href="{% url 'contacts:delete' contact.pk %}" class="btn btn-danger-quiet"><i class="bi bi-trash3" aria-hidden="true"></i>Delete</a>
+  </div>
 {% endblock %}

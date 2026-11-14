@@ -58,6 +58,7 @@ def contact_list(request):
         "total": mine.count(),
         "q": q,
         "stage": stage,
+        "stage_label": Stage(stage).label if stage else "",
         "is_filtered": bool(q or stage),
         "stage_choices": Stage.choices,
         "stage_menu": STAGE_MENU,
