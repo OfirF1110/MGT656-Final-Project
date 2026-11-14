@@ -616,3 +616,41 @@ class DemoSeedTests(TestCase):
         html = self.client.get("/contacts/").content.decode()
         first = html.index('class="contact-name"')
         self.assertIn(">Maya Okafor</a>", html[first:first + 120])
+
+
+    def test_rename_preserves_seed_identity(self):
+        self.run_seed()
+        user = self.graders()[1]
+        contact = Contact.objects.get(owner=user, demo_key="sample-contact-1")
+        links = list(Connection.objects.filter(owner=user).values_list("pk", flat=True))
+        contact.name = "Maya Renamed"
+        contact.save()
+        self.assertIn("Demo contacts added: 0", self.run_seed())
+        contact.refresh_from_db()
+        self.assertEqual(contact.name, "Maya Renamed")
+        self.assertEqual(Contact.objects.filter(owner=user).count(), 8)
+        self.assertEqual(list(Connection.objects.filter(owner=user).values_list("pk", flat=True)), links)
+
+    def test_same_name_contact_does_not_break_reseed(self):
+        self.run_seed()
+        user = self.graders()[1]
+        extra = Contact.objects.create(owner=user, name="Maya Okafor", notes="Real person")
+        self.assertIn("Demo contacts added: 0", self.run_seed())
+        extra.refresh_from_db()
+        self.assertIsNone(extra.demo_key)
+        self.assertEqual(extra.notes, "Real person")
+        self.assertEqual(Contact.objects.filter(owner=user, name="Maya Okafor").count(), 2)
+
+    def test_first_seed_leaves_existing_duplicates_alone(self):
+        user = get_user_model().objects.create_user(
+            SEED_CREDS["GRADER_MEMBER_USERNAME"], password=SEED_CREDS["GRADER_MEMBER_PASSWORD"])
+        records = [Contact.objects.create(owner=user, name="Maya Okafor", notes="Keep me") for _ in range(2)]
+        self.run_seed()
+        for contact in records:
+            contact.refresh_from_db()
+            self.assertIsNone(contact.demo_key)
+            self.assertEqual(contact.notes, "Keep me")
+            self.assertFalse(contact.tags.exists())
+            self.assertEqual(contact.connection_count(), 0)
+        self.assertEqual(Contact.objects.filter(owner=user).count(), 10)
+        self.assertIn("Demo contacts added: 0", self.run_seed())

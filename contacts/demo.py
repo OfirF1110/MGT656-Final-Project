@@ -12,44 +12,44 @@ from .models import Connection, Contact, Stage
 # days_ago: how long ago the last contact was, relative to the day the seed runs (None = never).
 DEMO_CONTACTS = [
     {
-        "name": "Maya Okafor", "company": "Goldman Sachs", "role": "Vice President",
+        "key": "sample-contact-1", "name": "Maya Okafor", "company": "Goldman Sachs", "role": "Vice President",
         "stage": Stage.MET, "days_ago": 4, "tags": ["finance", "alumni"],
         "linkedin_url": "https://www.linkedin.com/in/offerchat-demo-maya-okafor",
         "notes": "Met at the alumni finance night. Interested in my TMT background; email after Thanksgiving.",
     },
     {
-        "name": "Daniel Reyes", "company": "McKinsey & Company", "role": "Engagement Manager",
+        "key": "sample-contact-2", "name": "Daniel Reyes", "company": "McKinsey & Company", "role": "Engagement Manager",
         "stage": Stage.IN_CONVERSATION, "days_ago": 2, "tags": ["consulting"],
         "notes": "Two calls so far. Offered to review my case-interview prep next week.",
     },
     {
-        "name": "Priya Raman", "company": "Google", "role": "Product Manager",
+        "key": "sample-contact-3", "name": "Priya Raman", "company": "Google", "role": "Product Manager",
         "stage": Stage.AWAITING_REPLY, "days_ago": None, "tags": ["tech", "product"],
         "notes": "Sent a coffee chat request through the alumni directory.",
     },
     {
-        "name": "Jonah Weiss", "company": "Stripe", "role": "Software Engineer",
+        "key": "sample-contact-4", "name": "Jonah Weiss", "company": "Stripe", "role": "Software Engineer",
         "stage": Stage.MEETING_SET, "days_ago": 6, "tags": ["tech", "referral"],
         "linkedin_url": "https://www.linkedin.com/in/offerchat-demo-jonah-weiss",
         "notes": "Coffee booked for Thursday. Ask about the payments team and referral timing.",
     },
     {
-        "name": "Elena Novak", "company": "Bain & Company", "role": "Associate Consultant",
+        "key": "sample-contact-5", "name": "Elena Novak", "company": "Bain & Company", "role": "Associate Consultant",
         "stage": Stage.TO_CONTACT, "days_ago": None, "tags": ["consulting"],
         "notes": "Classmate's former teammate. Reach out before the Bain info session.",
     },
     {
-        "name": "Samuel Adeyemi", "company": "BlackRock", "role": "Analyst",
+        "key": "sample-contact-6", "name": "Samuel Adeyemi", "company": "BlackRock", "role": "Analyst",
         "stage": Stage.IN_CONVERSATION, "days_ago": 9, "tags": ["finance"],
         "notes": "",
     },
     {
-        "name": "Hannah Lindqvist", "company": "Boston Consulting Group", "role": "Project Leader",
+        "key": "sample-contact-7", "name": "Hannah Lindqvist", "company": "Boston Consulting Group", "role": "Project Leader",
         "stage": Stage.AWAITING_REPLY, "days_ago": 12, "tags": ["consulting", "alumni"],
         "notes": "Followed up after the BCG networking reception.",
     },
     {
-        "name": "Marcus Bell", "company": "Citadel", "role": "Recruiter",
+        "key": "sample-contact-8", "name": "Marcus Bell", "company": "Citadel", "role": "Recruiter",
         "stage": Stage.INACTIVE, "days_ago": 120, "tags": ["finance"],
         "notes": "Role filled for this cycle. Check back next fall.",
     },
@@ -65,7 +65,7 @@ DEMO_CONNECTIONS = [
 def seed_demo_contacts(user, today=None):
     """Add any missing demo contacts and connections for user. Returns how many contacts were created.
 
-    Safe to run repeatedly: a contact that already exists (same owner and name) is left exactly as it is,
+    Safe to run repeatedly: a contact that already exists (same owner and fixed demo key) is left exactly as it is,
     so a second run adds nothing and never overwrites what a grader changed.
     """
     today = today or timezone.localdate()
@@ -76,8 +76,9 @@ def seed_demo_contacts(user, today=None):
         days_ago = item["days_ago"]
         contact, created = Contact.objects.get_or_create(
             owner=user,
-            name=item["name"],
+            demo_key=item["key"],
             defaults={
+                "name": item["name"],
                 "company": item["company"],
                 "role": item["role"],
                 "stage": item["stage"],
