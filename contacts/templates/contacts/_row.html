@@ -1,10 +1,19 @@
 {% load contacts_ui %}
 <li class="contact-row{% if contact.stage == 'inactive' %} is-inactive{% endif %}" id="contact-{{ contact.pk }}">
   <div class="contact-main">
-    <a class="contact-name" href="{{ contact.get_absolute_url }}">{{ contact.name }}</a>
-    {% if contact.subtitle %}<div class="contact-sub">{{ contact.subtitle }}</div>{% endif %}
+    {% avatar contact.name %}
+    <div class="contact-text">
+      <a class="contact-name" href="{{ contact.get_absolute_url }}">{{ contact.name }}</a>
+      {% if contact.subtitle %}<div class="contact-sub">{{ contact.subtitle }}</div>{% endif %}
+    </div>
   </div>
   <div class="contact-tags">{% for tag in contact.tags.all %}<span class="tag">{{ tag.name }}</span>{% endfor %}</div>
   <div class="contact-stage">{% include 'contacts/_stage_menu.html' with menu_context='row' %}</div>
   <div class="contact-date tnum"><span class="visually-hidden">Last contact </span>{{ contact.last_contact_date|short_date }}</div>
+  <div class="row-actions">
+    {% if contact.linkedin_url %}
+      <a href="{{ contact.linkedin_url }}" class="row-action" target="_blank" rel="noopener noreferrer" aria-label="{{ contact.name }} on LinkedIn"><i class="bi bi-linkedin" aria-hidden="true"></i></a>
+    {% endif %}
+    <a href="{{ contact.get_absolute_url }}" class="row-action" aria-label="Open {{ contact.name }}"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+  </div>
 </li>

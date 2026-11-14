@@ -73,7 +73,7 @@ Detail, edit, delete (GET and POST) and stage (POST) all return 404 for someone 
 
 | URL | Method | Name | htmx behavior |
 |---|---|---|---|
-| `/contacts/` | GET `?q=&stage=` | `list` | With `HX-Request`: returns `_results.html` only. Always `Vary: HX-Request`. History restores get the full page. |
+| `/contacts/` | GET `?q=&stage=&sort=` | `list` | With `HX-Request`: returns `_results.html` only. Always `Vary: HX-Request`. History restores get the full page. |
 | `/contacts/new/` | GET, POST | `create` | — |
 | `/contacts/<pk>/` | GET | `detail` | — |
 | `/contacts/<pk>/edit/` | GET, POST | `edit` | — |
@@ -96,7 +96,7 @@ Also: login and `/` (when logged in) land on `/contacts/`. `/styleguide/` is a s
 |---|---|
 | Server-rendered Django + htmx, not a JS front end | Matches the proposal's stack; htmx is on the course's technical-challenge list; everything still works without JS. |
 | Bootstrap 5.3 with our own theme, not MUI | MUI is a React library and would mean a React front end. We borrow its principles (8px grid, one primary action, feedback on every action, 44px touch targets). |
-| Stage icons (Linear-style rings colored by Notion-style groups) instead of colored pills | Reads at a glance in dense tables without six competing colors; always paired with a text label. |
+| Soft stage pills with a dot (Attio/Notion style), chosen by Leo over icon rings | Easier to tell stages apart at a glance; tints are light so the table stays calm; the label is always text. |
 | `change_stage()` outside `save()` | Lets meeting logging set a past date without being overwritten. |
 | 404, never 403, for other users' data | Doesn't reveal that an ID exists. |
 | #16 kept separate | Keeps #10 shippable this sprint; `Connection` is ready for it. |

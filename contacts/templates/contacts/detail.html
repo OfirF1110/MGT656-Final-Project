@@ -8,7 +8,7 @@
   <a href="{% url 'contacts:list' %}" class="back-link"><i class="bi bi-arrow-left" aria-hidden="true"></i>Contacts</a>
   <div class="page-head detail-head">
     <div class="detail-identity">
-      <span class="detail-avatar" aria-hidden="true">{{ contact.name|first|upper }}</span>
+      {% avatar contact.name "lg" %}
       <div>
         <h1 class="page-title">{{ contact.name }}</h1>
         {% if contact.subtitle %}<p class="page-meta">{{ contact.subtitle }}</p>{% endif %}

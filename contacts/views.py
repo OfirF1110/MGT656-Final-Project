@@ -2,7 +2,8 @@ import json
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import F, Q
+from django.db.models.functions import Lower
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.cache import patch_vary_headers
@@ -33,6 +34,20 @@ def _connections(contact):
     return sorted(pairs, key=lambda pair: pair[0].name.lower())
 
 
+SORTS = {
+    "updated": ("Recently updated", ["-updated_at", "-id"]),
+    "name": ("Name", ["name_lower", "id"]),
+    "last_contact": ("Last contact", [F("last_contact_date").desc(nulls_last=True), "name_lower", "id"]),
+}
+
+
+def sort_contacts(queryset, sort):
+    """Order by one of SORTS; unknown values fall back to recently updated.
+    name_lower is annotated (not an order_by expression) so it works with distinct() on Postgres."""
+    _, ordering = SORTS.get(sort, SORTS["updated"])
+    return queryset.annotate(name_lower=Lower("name")).order_by(*ordering)
+
+
 def filter_contacts(queryset, q, stage):
     """Search name, company and tag names (case-insensitive, partial) and filter by stage."""
     if q:
@@ -49,8 +64,10 @@ def contact_list(request):
     q = request.GET.get("q", "").strip()
     stage = request.GET.get("stage", "")
     stage = stage if stage in Stage.values else ""
+    sort = request.GET.get("sort", "updated")
+    sort = sort if sort in SORTS else "updated"
     mine = Contact.objects.filter(owner=request.user)
-    contacts = list(filter_contacts(mine, q, stage).prefetch_related("tags"))
+    contacts = list(sort_contacts(filter_contacts(mine, q, stage), sort).prefetch_related("tags"))
     template = "contacts/_results.html" if is_htmx(request) else "contacts/list.html"
     response = render(request, template, {
         "contacts": contacts,
@@ -62,6 +79,8 @@ def contact_list(request):
         "is_filtered": bool(q or stage),
         "is_htmx": is_htmx(request),
         "stage_choices": Stage.choices,
+        "sort": sort,
+        "sort_choices": [(key, label) for key, (label, _) in SORTS.items()],
         "stage_menu": STAGE_MENU,
         "next_url": request.get_full_path(),
         "nav_active": "contacts",

@@ -11,7 +11,8 @@ Read this before building any page. To see every component rendered, log in as a
 3. **Every action answers.** Saves and deletes show a toast; htmx requests dim what they're updating;
    failures say what happened and what to do.
 4. **Works without JS.** Build the plain form or link first. htmx only swaps parts of the page.
-5. **Calm by default.** One accent color. Stage colors only on stage icons. No shadows except menus.
+5. **Calm by default.** One accent color for actions. Stage tints only on stage pills, avatar tints only on avatars.
+   Depth comes from one soft elevation token (`--oc-elev-1`) instead of borders; menus use `--oc-shadow-pop`.
 
 These borrow from Material Design / MUI (8px grid, clear hierarchy, feedback, 44–48px touch targets,
 visible focus, labels above fields). We don't use MUI itself: it's a React library.
@@ -25,8 +26,8 @@ visible focus, labels above fields). We don't use MUI itself: it's a React libra
 | `--oc-surface` | `#FFFFFF` | Panels, tables, cards |
 | `--oc-line` | `#E2E5EA` | Borders |
 | `--oc-text` / `--oc-muted` | `#1A2130` / `#5D6677` | Body / secondary text |
-| `--oc-accent` | `#4C5BD4` | Primary buttons, links, focus, active-stage icons |
-| `--oc-green` | `#1F8A5B` | Met icon only |
+| `--oc-accent` | `#4C5BD4` | Primary buttons, links, focus |
+| `--oc-elev-1` | ring + two soft shadows | Panels, tables, cards (replaces borders) |
 | `--oc-danger` | `#B3261E` | Destructive actions, errors |
 
 - Type: Geist 400/500/600. Page title 24px/600, body 14px, meta 13px. Dates use `.tnum` (tabular numbers).
@@ -67,9 +68,11 @@ Patterns we reuse from our other apps (zhiji, headsup, intake, yale-radar):
 |---|---|---|
 | Form field | `templates/components/_field.html` | `{% include 'components/_field.html' with field=form.x optional=True %}`. Label above, help text, error below with `aria-describedby`. Use `css="form-select"` for selects. |
 | Buttons | Bootstrap `.btn` + `.btn-primary`, `.btn-quiet`, `.btn-danger-quiet`, `.btn-danger`, `.btn-text` | Verb first: "Add contact", "Save changes", "Delete contact". |
-| Stage icon | `{% load contacts_ui %}{% stage_icon contact.stage %}` | Decorative SVG; always show the label too. |
+| Stage pill | `<span class="stage-pill stage-pill--{{ contact.stage }}">{{ contact.get_stage_display }}</span>` | Soft pill + dot, one tint per stage (gray, amber, blue, violet, green, light gray). The label is always the text. |
+| Avatar | `{% load contacts_ui %}{% avatar contact.name %}` (`"lg"` for 52px) | Initials on a stable tint chosen from the name (crc32, six tones). Decorative (`aria-hidden`). |
+| Row quick actions | `.row-actions` in `contacts/_row.html` | Own last column; appear on hover or keyboard focus on devices with a mouse (`any-hover`), hidden on touch and phones. Each link has an `aria-label`. |
 | Stage menu | `contacts/_stage_menu.html` | Needs `contact`, `stage_menu`, `menu_context` (`row`/`panel`), `next_url`. |
-| Contact row/card | `contacts/_row.html` | Table row on desktop, card on phones (CSS only). |
+| Contact row/card | `contacts/_row.html` | Table row on desktop, card on phones (CSS only). List supports `?sort=updated|name|last_contact`. |
 | Tag | `<span class="tag">finance</span>` | Lowercase. |
 | Empty state | `.empty-state` with `.empty-icon`, `.empty-title`, `.empty-body`, one button | An invitation, not an apology. |
 | Toast | Django `messages.success(...)` on redirects; `HX-Trigger: {"toast": "..."}` for htmx; `OfferChat.toast(msg, "error")` in JS | Short, past tense: "Contact added", "Stage updated". |

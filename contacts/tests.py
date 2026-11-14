@@ -474,3 +474,59 @@ class StaticAssetTests(TestCase):
         self.assertIn("css/theme.css", refs)
         missing = sorted(ref for ref in refs if not finders.find(ref))
         self.assertEqual(missing, [])
+
+
+class AvatarTests(TestCase):
+    def test_initials(self):
+        from contacts.templatetags.contacts_ui import initials
+        self.assertEqual(initials("Amy Chen"), "AC")
+        self.assertEqual(initials("amy van der berg"), "AB")
+        self.assertEqual(initials("Madonna"), "M")
+        self.assertEqual(initials("李晓明"), "李")
+        self.assertEqual(initials("  "), "?")
+
+    def test_tone_is_stable_and_in_palette(self):
+        from contacts.templatetags.contacts_ui import AVATAR_TONES, avatar_tone
+        self.assertEqual(avatar_tone("Amy Chen"), avatar_tone("Amy Chen"))
+        self.assertIn(avatar_tone("Amy Chen"), range(AVATAR_TONES))
+        self.assertGreater(len({avatar_tone(n) for n in ["Amy Chen", "David Roy", "Sara Patel", "Jin Lee", "Mark Kim", "Tom Wu"]}), 2)
+
+
+class ListPolishTests(LoggedInTestCase):
+    def setUp(self):
+        super().setUp()
+        self.amy = Contact.objects.create(owner=self.alice, name="Amy Chen", last_contact_date=date(2026, 11, 10),
+                                          linkedin_url="https://www.linkedin.com/in/amychen")
+        self.bob = Contact.objects.create(owner=self.alice, name="bob Stone", last_contact_date=None)
+        self.cara = Contact.objects.create(owner=self.alice, name="Cara Diaz", last_contact_date=date(2026, 11, 12))
+
+    def names_in_order(self, **params):
+        html = self.client.get("/contacts/", params).content.decode()
+        names = ["Amy Chen", "bob Stone", "Cara Diaz"]
+        return sorted(names, key=lambda n: html.index(f">{n}</a>"))
+
+    def test_rows_show_initials_avatar(self):
+        self.assertContains(self.client.get("/contacts/"), '<span class="avatar avatar--tone-')
+        self.assertContains(self.client.get("/contacts/"), ">AC</span>")
+
+    def test_sort_by_name_is_case_insensitive(self):
+        self.assertEqual(self.names_in_order(sort="name"), ["Amy Chen", "bob Stone", "Cara Diaz"])
+
+    def test_sort_by_last_contact_puts_never_last(self):
+        self.assertEqual(self.names_in_order(sort="last_contact"), ["Cara Diaz", "Amy Chen", "bob Stone"])
+
+    def test_unknown_sort_falls_back_to_recently_updated(self):
+        self.assertEqual(self.names_in_order(sort="bogus"), self.names_in_order())
+        self.assertEqual(self.names_in_order()[0], "Cara Diaz")
+
+    def test_sort_select_keeps_choice_and_drives_htmx(self):
+        html = self.client.get("/contacts/", {"sort": "name"}).content.decode()
+        select = html[html.index('name="sort"') - 20: html.index('name="sort"') + 400]
+        self.assertIn('hx-get="/contacts/"', select)
+        self.assertIn('<option value="name" selected>', html)
+
+    def test_row_quick_actions_have_labels_and_linkedin_only_when_present(self):
+        html = self.client.get("/contacts/").content.decode()
+        self.assertIn('aria-label="Open Amy Chen"', html)
+        self.assertIn('aria-label="Amy Chen on LinkedIn"', html)
+        self.assertNotIn('aria-label="bob Stone on LinkedIn"', html)

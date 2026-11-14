@@ -27,6 +27,12 @@
         <option value="{{ value }}"{% if value == stage %} selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
+    <select name="sort" class="form-select sort-select" aria-label="Sort contacts"
+            hx-get="{% url 'contacts:list' %}" hx-trigger="change" hx-include="closest form" hx-replace-url="true">
+      {% for value, label in sort_choices %}
+        <option value="{{ value }}"{% if value == sort %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
     <button type="submit" class="btn btn-quiet js-hide">Search</button>
   </form>
 

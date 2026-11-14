@@ -49,16 +49,16 @@
     <h2 class="panel-title" id="sg-stages">Stages</h2>
     <ul class="sg-stage-list">
       {% for stage in stages %}
-        <li>{% stage_icon stage.value %}<span>{{ stage.label }}</span><code>{{ stage.value }}</code></li>
+        <li><span class="stage-pill stage-pill--{{ stage.value }}">{{ stage.label }}</span><code>{{ stage.value }}</code></li>
       {% endfor %}
     </ul>
-    <p class="text-muted-oc mb-0" style="font-size:.8125rem">Shape shows progress, color shows the group (gray not started, accent active, green met, light dashed inactive). Always render the label next to the icon.</p>
+    <p class="text-muted-oc mb-0" style="font-size:.8125rem">Soft pill with a dot, one tint per stage. Always shows the stage name, so color is never the only signal.</p>
   </section>
 
   <section class="sg-section" aria-labelledby="sg-rows">
     <h2 class="panel-title" id="sg-rows">Contact rows (cards on phones)</h2>
     <div class="contact-table">
-      <div class="contact-head" aria-hidden="true"><span>Name</span><span>Tags</span><span>Stage</span><span>Last contact</span></div>
+      <div class="contact-head" aria-hidden="true"><span>Name</span><span>Tags</span><span>Stage</span><span>Last contact</span><span></span></div>
       <ul class="contact-list">
         {% for contact in samples %}{% include 'contacts/_row.html' %}{% endfor %}
       </ul>
