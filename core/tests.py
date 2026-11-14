@@ -56,3 +56,27 @@ class FoundationTests(TestCase):
         self.assertEqual(get_user_model().objects.count(), 1)
         user.refresh_from_db()
         self.assertTrue(user.check_password("Existing-Different-Secret-321"))
+
+
+class ShellTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("shell-user", password="Shell-Test-Pass-482!")
+
+    def test_ab_page_has_exactly_one_button(self):
+        for logged_in in (False, True):
+            if logged_in:
+                self.client.force_login(self.user)
+            html = self.client.get("/020c45f").content.decode()
+            self.assertEqual(html.count("<button"), 1, f"logged_in={logged_in}")
+            self.assertIn('id="abtest"', html)
+
+    def test_login_page_uses_theme_without_app_nav(self):
+        html = self.client.get("/login/").content.decode()
+        self.assertIn("css/theme.css", html)
+        self.assertNotIn('class="app-sidebar', html)
+
+    def test_account_page_uses_app_shell_with_post_logout(self):
+        self.client.force_login(self.user)
+        html = self.client.get("/account/").content.decode()
+        self.assertIn('class="app-sidebar', html)
+        self.assertIn('<form method="post" action="/logout/"', html)

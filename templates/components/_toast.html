@@ -1,0 +1,5 @@
+<div class="toast-stack" id="toast-stack" aria-live="polite">
+  {% for message in messages %}
+    <div class="oc-toast{% if message.level_tag == 'error' %} oc-toast--error{% endif %}" role="status">{{ message }}</div>
+  {% endfor %}
+</div>

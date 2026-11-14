@@ -1,0 +1,21 @@
+{% url 'contacts:list' as contacts_url %}
+<nav aria-label="Main" class="app-nav">
+  {% if contacts_url %}
+    <a href="{{ contacts_url }}" class="app-nav-link{% if nav_active == 'contacts' %} active{% endif %}"
+       {% if nav_active == 'contacts' %}aria-current="page"{% endif %}>
+      <i class="bi bi-people" aria-hidden="true"></i>
+      <span>Contacts</span>
+      {% if nav_contact_count is not None %}<span class="app-nav-count">{{ nav_contact_count }}</span>{% endif %}
+    </a>
+  {% endif %}
+</nav>
+<div class="app-account">
+  <a href="{% url 'account' %}" class="app-account-link{% if nav_active == 'account' %} active{% endif %}">
+    <span class="app-avatar" aria-hidden="true">{{ user.get_username|first|upper }}</span>
+    <span class="app-account-name">{{ user.get_username }}</span>
+  </a>
+  <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit" class="app-logout">Log out</button>
+  </form>
+</div>
