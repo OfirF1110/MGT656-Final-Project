@@ -1,0 +1,19 @@
+{% extends 'app.html' %}
+{% block title %}Delete {{ contact.name }} · OfferChat{% endblock %}
+{% block content %}
+  <a href="{{ contact.get_absolute_url }}" class="back-link"><i class="bi bi-arrow-left" aria-hidden="true"></i>{{ contact.name }}</a>
+  <form method="post" class="panel confirm-panel">
+    {% csrf_token %}
+    <div class="confirm-icon" aria-hidden="true"><i class="bi bi-trash3"></i></div>
+    <h1 class="confirm-title">Delete {{ contact.name }}?</h1>
+    <p class="confirm-body">
+      This removes the contact, their notes and tags from your network.
+      {% if connection_count %}This also removes {{ connection_count }} connection{{ connection_count|pluralize }}.{% endif %}
+      You can't undo this.
+    </p>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-danger">Delete contact</button>
+      <a href="{{ contact.get_absolute_url }}" class="btn btn-quiet">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

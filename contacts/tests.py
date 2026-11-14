@@ -271,3 +271,75 @@ class LandingRedirectTests(TestCase):
         self.assertRedirects(self.client.get("/"), "/contacts/")
         self.client.logout()
         self.assertEqual(self.client.get("/").status_code, 200)
+
+
+class StageViewTests(LoggedInTestCase):
+    def setUp(self):
+        super().setUp()
+        self.contact = Contact.objects.create(owner=self.alice, name="Amy Chen", last_contact_date=EARLIER)
+        self.url = f"/contacts/{self.contact.pk}/stage/"
+
+    def test_stage_post_to_met_sets_today_and_redirects_to_next(self):
+        with patch("contacts.models.timezone.localdate", return_value=TODAY):
+            response = self.client.post(self.url, {"stage": "met", "next": "/contacts/?q=a"})
+        self.assertRedirects(response, "/contacts/?q=a", fetch_redirect_response=False)
+        self.contact.refresh_from_db()
+        self.assertEqual((self.contact.stage, self.contact.last_contact_date), ("met", TODAY))
+
+    def test_unknown_stage_returns_400_and_changes_nothing(self):
+        for data in ({"stage": "bogus"}, {}):
+            self.assertEqual(self.client.post(self.url, data).status_code, 400)
+        self.contact.refresh_from_db()
+        self.assertEqual(self.contact.stage, "to_contact")
+
+    def test_external_next_falls_back_to_detail(self):
+        response = self.client.post(self.url, {"stage": "awaiting_reply", "next": "https://evil.example/"})
+        self.assertRedirects(response, f"/contacts/{self.contact.pk}/", fetch_redirect_response=False)
+
+    def test_get_not_allowed(self):
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+
+class DeleteTests(LoggedInTestCase):
+    def setUp(self):
+        super().setUp()
+        self.amy = Contact.objects.create(owner=self.alice, name="Amy Chen")
+        self.jin = Contact.objects.create(owner=self.alice, name="Jin Lee")
+        Connection.objects.create(owner=self.alice, from_contact=self.amy, to_contact=self.jin)
+        self.url = f"/contacts/{self.amy.pk}/delete/"
+
+    def test_get_shows_confirmation_with_connection_count_and_deletes_nothing(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "Delete Amy Chen?")
+        self.assertContains(response, "This also removes 1 connection.")
+        self.assertEqual(Contact.objects.count(), 2)
+
+    def test_post_deletes_contact_and_connections(self):
+        response = self.client.post(self.url, follow=True)
+        self.assertRedirects(response, "/contacts/")
+        self.assertContains(response, "Amy Chen deleted")
+        self.assertFalse(Contact.objects.filter(pk=self.amy.pk).exists())
+        self.assertEqual(Connection.objects.count(), 0)
+        self.assertTrue(Contact.objects.filter(pk=self.jin.pk).exists())
+
+
+class PrivacyTests(TestCase):
+    def test_other_users_contact_is_404_everywhere(self):
+        alice = make_user("alice")
+        contact = Contact.objects.create(owner=alice, name="Amy Chen", stage="met")
+        self.client.force_login(make_user("bob"))
+        base = f"/contacts/{contact.pk}"
+        requests = [
+            ("get", f"{base}/"),
+            ("get", f"{base}/edit/"),
+            ("post", f"{base}/edit/"),
+            ("get", f"{base}/delete/"),
+            ("post", f"{base}/delete/"),
+            ("post", f"{base}/stage/"),
+        ]
+        for method, url in requests:
+            data = {**VALID, "name": "Hacked", "stage": "inactive"} if method == "post" else None
+            response = getattr(self.client, method)(url, data)
+            self.assertEqual(response.status_code, 404, f"{method.upper()} {url}")
+        contact.refresh_from_db()
+        self.assertEqual((contact.name, contact.stage), ("Amy Chen", "met"))

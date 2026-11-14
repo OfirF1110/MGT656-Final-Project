@@ -1,8 +1,10 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import Http404
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from .forms import ContactForm
 from .models import STAGE_MENU, Contact, Stage
@@ -84,11 +86,36 @@ def contact_edit(request, pk):
     return render(request, "contacts/form.html", {"form": form, "contact": contact, "nav_active": "contacts"})
 
 
+def _safe_next(request, fallback):
+    next_url = request.POST.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(next_url, {request.get_host()}, require_https=request.is_secure()):
+        return next_url
+    return fallback
+
+
 @login_required
+@require_POST
 def contact_stage(request, pk):
-    raise Http404  # Replaced in Task 5.
+    contact = get_contact_or_404(request, pk)
+    new_stage = request.POST.get("stage", "")
+    if new_stage not in Stage.values:
+        return HttpResponseBadRequest("Unknown stage")
+    if contact.change_stage(new_stage):
+        contact.save()
+    messages.success(request, "Stage updated")
+    return redirect(_safe_next(request, contact.get_absolute_url()))
 
 
 @login_required
 def contact_delete(request, pk):
-    raise Http404  # Replaced in Task 5.
+    contact = get_contact_or_404(request, pk)
+    if request.method == "POST":
+        name = contact.name
+        contact.delete()
+        messages.success(request, f"{name} deleted")
+        return redirect("contacts:list")
+    return render(request, "contacts/confirm_delete.html", {
+        "contact": contact,
+        "connection_count": contact.connection_count(),
+        "nav_active": "contacts",
+    })

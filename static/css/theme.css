@@ -413,3 +413,13 @@ body.public { min-height: 100vh; }
   .contact-tags:empty { display: none; }
   .contact-name { font-size: 1rem; }
 }
+
+/* ---------- Delete confirmation ---------- */
+.confirm-panel { max-width: 480px; padding: 28px; }
+.confirm-icon {
+  width: 40px; height: 40px; border-radius: 50%; background: #FCEEEE; color: var(--oc-danger);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 1.125rem; margin-bottom: 14px;
+}
+.confirm-title { font-size: 1.25rem; font-weight: 600; margin: 0 0 8px; }
+.confirm-body { color: var(--oc-muted); margin-bottom: 20px; }
+@media (max-width: 767.98px) { .confirm-panel { padding: 20px; } }
