@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 
 
@@ -74,6 +75,9 @@ class Contact(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse("contacts:detail", args=[self.pk])
 
     def change_stage(self, new_stage, today=None):
         """Set the stage. Moving into In conversation or Met sets last contact to today.

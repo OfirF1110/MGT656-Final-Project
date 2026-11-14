@@ -1,0 +1,7 @@
+{% load ui %}
+<div class="field">
+  <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}{% if optional %} <span class="optional">Optional</span>{% endif %}</label>
+  {% if css %}{{ field|add_class:css }}{% else %}{{ field|add_class:"form-control" }}{% endif %}
+  {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+  {% for error in field.errors %}<div class="field-error" id="{{ field.auto_id }}-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ error }}</div>{% endfor %}
+</div>

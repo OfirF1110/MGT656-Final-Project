@@ -1,0 +1,62 @@
+{% extends 'app.html' %}
+{% load contacts_ui %}
+{% block title %}{{ contact.name }} · OfferChat{% endblock %}
+{% block page_actions %}
+  <a href="{% url 'contacts:edit' contact.pk %}" class="topbar-button" aria-label="Edit {{ contact.name }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+{% endblock %}
+{% block content %}
+  <a href="{% url 'contacts:list' %}" class="back-link"><i class="bi bi-arrow-left" aria-hidden="true"></i>Contacts</a>
+  <div class="page-head detail-head">
+    <div class="detail-identity">
+      <span class="detail-avatar" aria-hidden="true">{{ contact.name|first|upper }}</span>
+      <div>
+        <h1 class="page-title">{{ contact.name }}</h1>
+        {% if contact.subtitle %}<p class="page-meta">{{ contact.subtitle }}</p>{% endif %}
+      </div>
+    </div>
+    <div class="page-actions">
+      <a href="{% url 'contacts:edit' contact.pk %}" class="btn btn-quiet"><i class="bi bi-pencil" aria-hidden="true"></i>Edit</a>
+      <a href="{% url 'contacts:delete' contact.pk %}" class="btn btn-danger-quiet"><i class="bi bi-trash3" aria-hidden="true"></i>Delete</a>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <section class="panel detail-relationship" aria-labelledby="rel-title">
+      <h2 class="panel-title" id="rel-title">Relationship</h2>
+      {% include 'contacts/_stage_panel.html' with next_url=request.get_full_path %}
+    </section>
+
+    <section class="panel detail-info" aria-labelledby="info-title">
+      <h2 class="panel-title" id="info-title">Details</h2>
+      <dl class="detail-list">
+        <dt>Company</dt><dd>{{ contact.company|default:"—" }}</dd>
+        <dt>Role</dt><dd>{{ contact.role|default:"—" }}</dd>
+        <dt>LinkedIn</dt>
+        <dd>{% if contact.linkedin_url %}<a href="{{ contact.linkedin_url }}" target="_blank" rel="noopener noreferrer">{{ contact.linkedin_url|linkedin_display }}</a>{% else %}—{% endif %}</dd>
+        <dt>Tags</dt>
+        <dd>{% for tag in contact.tags.all %}<span class="tag">{{ tag.name }}</span>{% empty %}—{% endfor %}</dd>
+        <dt>Added</dt><dd class="tnum">{{ contact.created_at|date:"M j, Y" }}</dd>
+      </dl>
+    </section>
+
+    <section class="panel detail-notes" aria-labelledby="notes-title">
+      <h2 class="panel-title" id="notes-title">Notes</h2>
+      {% if contact.notes %}
+        <div class="notes-body">{{ contact.notes|linebreaksbr }}</div>
+      {% else %}
+        <p class="empty-inline">No notes yet. <a href="{% url 'contacts:edit' contact.pk %}">Add notes</a></p>
+      {% endif %}
+    </section>
+
+    {% if connections %}
+      <section class="panel detail-connections" aria-labelledby="conn-title">
+        <h2 class="panel-title" id="conn-title">Connections</h2>
+        <ul class="connection-list">
+          {% for other, relationship in connections %}
+            <li><a href="{{ other.get_absolute_url }}">{{ other.name }}</a><span class="connection-kind">{{ relationship }}</span></li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

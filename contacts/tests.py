@@ -1,4 +1,5 @@
 from datetime import date
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -95,3 +96,98 @@ class TagTests(TestCase):
         second.set_tags(["finance"])
         self.assertEqual(first.tag_string, "alumni, finance")
         self.assertEqual(user.contact_tags.count(), 2)
+
+
+class LoggedInTestCase(TestCase):
+    def setUp(self):
+        self.alice = make_user("alice")
+        self.client.force_login(self.alice)
+
+
+VALID = {
+    "name": "Amy Chen",
+    "company": "Goldman Sachs",
+    "role": "VP",
+    "tags": "Finance, alumni",
+    "notes": "Met at SOM",
+    "linkedin_url": "linkedin.com/in/amychen",
+    "stage": "to_contact",
+}
+
+
+class CreateEditTests(LoggedInTestCase):
+    def test_create_contact_with_all_fields(self):
+        response = self.client.post("/contacts/new/", VALID, follow=True)
+        contact = Contact.objects.get()
+        self.assertRedirects(response, f"/contacts/{contact.pk}/")
+        self.assertEqual(contact.owner, self.alice)
+        self.assertEqual((contact.company, contact.role, contact.notes), ("Goldman Sachs", "VP", "Met at SOM"))
+        self.assertEqual(contact.stage, "to_contact")
+        self.assertEqual(contact.linkedin_url, "https://linkedin.com/in/amychen")
+        self.assertEqual(set(contact.tags.values_list("name", flat=True)), {"finance", "alumni"})
+        self.assertContains(response, "Contact added")
+
+    def test_missing_name_shows_error_and_creates_nothing(self):
+        for name in ("", "   "):
+            response = self.client.post("/contacts/new/", {**VALID, "name": name})
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "Enter a name")
+            self.assertContains(response, 'value="Goldman Sachs"')
+        self.assertEqual(Contact.objects.count(), 0)
+
+    def test_create_with_met_sets_last_contact_today(self):
+        with patch("contacts.models.timezone.localdate", return_value=TODAY):
+            self.client.post("/contacts/new/", {**VALID, "stage": "met"})
+        contact = Contact.objects.get()
+        self.assertEqual((contact.stage, contact.last_contact_date), ("met", TODAY))
+
+    def test_edit_without_stage_change_keeps_date(self):
+        contact = Contact.objects.create(owner=self.alice, name="Amy Chen", stage="met", last_contact_date=EARLIER)
+        response = self.client.post(f"/contacts/{contact.pk}/edit/", {**VALID, "stage": "met", "notes": "Changed"}, follow=True)
+        self.assertRedirects(response, f"/contacts/{contact.pk}/")
+        contact.refresh_from_db()
+        self.assertEqual((contact.notes, contact.last_contact_date), ("Changed", EARLIER))
+        self.assertContains(response, "Changes saved")
+
+    def test_edit_to_in_conversation_sets_today(self):
+        contact = Contact.objects.create(owner=self.alice, name="Amy Chen", last_contact_date=EARLIER)
+        with patch("contacts.models.timezone.localdate", return_value=TODAY):
+            self.client.post(f"/contacts/{contact.pk}/edit/", {**VALID, "stage": "in_conversation"})
+        contact.refresh_from_db()
+        self.assertEqual((contact.stage, contact.last_contact_date), ("in_conversation", TODAY))
+
+    def test_edit_form_shows_existing_tags(self):
+        contact = Contact.objects.create(owner=self.alice, name="Amy Chen")
+        contact.set_tags(["finance", "alumni"])
+        self.assertContains(self.client.get(f"/contacts/{contact.pk}/edit/"), 'value="alumni, finance"')
+
+    def test_linkedin_validation(self):
+        for bad in ("https://linkedin.com.evil.com/in/x", "notlinkedin.com/in/x", "https://example.com/x"):
+            response = self.client.post("/contacts/new/", {**VALID, "linkedin_url": bad})
+            self.assertContains(response, "Enter a LinkedIn profile link, like linkedin.com/in/yourname")
+        self.assertEqual(Contact.objects.count(), 0)
+        self.client.post("/contacts/new/", {**VALID, "linkedin_url": "HTTP://WWW.LinkedIn.com/in/x"})
+        self.assertEqual(Contact.objects.count(), 1)
+
+    def test_long_tag_is_form_error(self):
+        response = self.client.post("/contacts/new/", {**VALID, "tags": "a" * 41})
+        self.assertContains(response, "Keep each tag under 40 characters")
+        self.assertEqual(Contact.objects.count(), 0)
+
+    def test_detail_shows_fields_and_hides_empty_connections(self):
+        contact = Contact.objects.create(owner=self.alice, name="Amy Chen", role="VP", company="Goldman Sachs",
+                                         linkedin_url="https://www.linkedin.com/in/amychen")
+        contact.set_tags(["finance"])
+        response = self.client.get(f"/contacts/{contact.pk}/")
+        self.assertContains(response, "Amy Chen")
+        self.assertContains(response, "VP at Goldman Sachs")
+        self.assertContains(response, "finance")
+        self.assertContains(response, ">linkedin.com/in/amychen<")
+        self.assertNotContains(response, "Connections")
+        other = Contact.objects.create(owner=self.alice, name="Jin Lee")
+        Connection.objects.create(owner=self.alice, from_contact=contact, to_contact=other)
+        self.assertContains(self.client.get(f"/contacts/{contact.pk}/"), "Connections")
+
+    def test_anonymous_redirected_to_login(self):
+        self.client.logout()
+        self.assertRedirects(self.client.get("/contacts/new/"), "/login/?next=/contacts/new/")

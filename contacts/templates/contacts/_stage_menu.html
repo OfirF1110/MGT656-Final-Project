@@ -1,0 +1,26 @@
+{% load contacts_ui %}
+<details class="stage-menu stage-menu--{{ menu_context }}">
+  <summary class="stage-trigger" aria-label="Change stage, currently {{ contact.get_stage_display }}">
+    {% if menu_context == 'panel' %}{% stage_icon contact.stage 20 %}{% else %}{% stage_icon contact.stage %}{% endif %}
+    <span class="stage-label">{{ contact.get_stage_display }}</span>
+    <i class="bi bi-chevron-down stage-caret" aria-hidden="true"></i>
+  </summary>
+  <form method="post" action="{% url 'contacts:stage' contact.pk %}" class="stage-popover">
+    {% csrf_token %}
+    <input type="hidden" name="context" value="{{ menu_context }}">
+    <input type="hidden" name="next" value="{{ next_url }}">
+    {% for group_label, stages in stage_menu %}
+      <div class="stage-group" role="group" aria-label="{{ group_label }}">
+        <div class="stage-group-label" aria-hidden="true">{{ group_label }}</div>
+        {% for stage in stages %}
+          <button type="submit" name="stage" value="{{ stage.value }}" class="stage-option"
+                  {% if stage.value == contact.stage %}aria-current="true"{% endif %}>
+            {% stage_icon stage.value %}<span>{{ stage.label }}</span>
+            {% if stage.value == contact.stage %}<i class="bi bi-check2" aria-hidden="true"></i>{% endif %}
+          </button>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    <p class="stage-hint">In conversation and Met set last contact to today</p>
+  </form>
+</details>

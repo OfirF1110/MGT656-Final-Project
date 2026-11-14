@@ -1,0 +1,5 @@
+{% load contacts_ui %}
+<div class="stage-panel" id="stage-panel-{{ contact.pk }}">
+  {% include 'contacts/_stage_menu.html' with menu_context='panel' %}
+  <p class="stage-panel-date">Last contact <span class="tnum">{{ contact.last_contact_date|short_date }}</span></p>
+</div>
