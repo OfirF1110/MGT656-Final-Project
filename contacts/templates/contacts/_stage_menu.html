@@ -5,7 +5,9 @@
     <span class="stage-label">{{ contact.get_stage_display }}</span>
     <i class="bi bi-chevron-down stage-caret" aria-hidden="true"></i>
   </summary>
-  <form method="post" action="{% url 'contacts:stage' contact.pk %}" class="stage-popover">
+  <form method="post" action="{% url 'contacts:stage' contact.pk %}" class="stage-popover"
+        hx-post="{% url 'contacts:stage' contact.pk %}" hx-swap="outerHTML"
+        hx-target="{% if menu_context == 'row' %}closest .contact-row{% else %}closest .stage-panel{% endif %}">
     {% csrf_token %}
     <input type="hidden" name="context" value="{{ menu_context }}">
     <input type="hidden" name="next" value="{{ next_url }}">

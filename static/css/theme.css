@@ -423,3 +423,8 @@ body.public { min-height: 100vh; }
 .confirm-title { font-size: 1.25rem; font-weight: 600; margin: 0 0 8px; }
 .confirm-body { color: var(--oc-muted); margin-bottom: 20px; }
 @media (max-width: 767.98px) { .confirm-panel { padding: 20px; } }
+
+/* ---------- htmx request states ---------- */
+#contact-results { transition: opacity .12s; }
+#contact-results.htmx-request { opacity: .55; }
+.stage-popover.htmx-request { opacity: .6; pointer-events: none; }

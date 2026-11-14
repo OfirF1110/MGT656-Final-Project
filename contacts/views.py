@@ -1,13 +1,24 @@
+import json
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.cache import patch_vary_headers
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .forms import ContactForm
 from .models import STAGE_MENU, Contact, Stage
+
+
+def is_htmx(request):
+    """True for htmx fragment requests. History restores need the full page."""
+    return (
+        request.headers.get("HX-Request") == "true"
+        and request.headers.get("HX-History-Restore-Request") != "true"
+    )
 
 
 def get_contact_or_404(request, pk):
@@ -40,7 +51,8 @@ def contact_list(request):
     stage = stage if stage in Stage.values else ""
     mine = Contact.objects.filter(owner=request.user)
     contacts = list(filter_contacts(mine, q, stage).prefetch_related("tags"))
-    return render(request, "contacts/list.html", {
+    template = "contacts/_results.html" if is_htmx(request) else "contacts/list.html"
+    response = render(request, template, {
         "contacts": contacts,
         "count": len(contacts),
         "total": mine.count(),
@@ -52,6 +64,8 @@ def contact_list(request):
         "next_url": request.get_full_path(),
         "nav_active": "contacts",
     })
+    patch_vary_headers(response, ["HX-Request"])
+    return response
 
 
 @login_required
@@ -102,6 +116,15 @@ def contact_stage(request, pk):
         return HttpResponseBadRequest("Unknown stage")
     if contact.change_stage(new_stage):
         contact.save()
+    if is_htmx(request):
+        in_row = request.POST.get("context") == "row"
+        response = render(request, "contacts/_row.html" if in_row else "contacts/_stage_panel.html", {
+            "contact": contact,
+            "stage_menu": STAGE_MENU,
+            "next_url": _safe_next(request, contact.get_absolute_url()),
+        })
+        response["HX-Trigger"] = json.dumps({"toast": "Stage updated"})
+        return response
     messages.success(request, "Stage updated")
     return redirect(_safe_next(request, contact.get_absolute_url()))
 

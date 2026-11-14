@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import Client, TestCase
 
 from .models import Connection, Contact, parse_tags
 
@@ -343,3 +343,61 @@ class PrivacyTests(TestCase):
             self.assertEqual(response.status_code, 404, f"{method.upper()} {url}")
         contact.refresh_from_db()
         self.assertEqual((contact.name, contact.stage), ("Amy Chen", "met"))
+
+
+HX = {"HTTP_HX_REQUEST": "true"}
+
+
+class HtmxTests(LoggedInTestCase):
+    def setUp(self):
+        super().setUp()
+        self.amy = Contact.objects.create(owner=self.alice, name="Amy Chen", company="Goldman Sachs")
+        Contact.objects.create(owner=self.alice, name="David Roy", company="McKinsey")
+
+    def test_list_htmx_returns_fragment(self):
+        response = self.client.get("/contacts/", {"q": "gold"}, **HX)
+        html = response.content.decode()
+        self.assertNotIn("<html", html)
+        self.assertIn("Amy Chen", html)
+        self.assertNotIn("David Roy", html)
+        self.assertIn("HX-Request", response["Vary"])
+
+    def test_full_list_page_also_varies_on_htmx_header(self):
+        response = self.client.get("/contacts/")
+        self.assertIn("<html", response.content.decode())
+        self.assertIn("HX-Request", response["Vary"])
+
+    def test_stage_htmx_returns_row_with_toast_trigger(self):
+        response = self.client.post(f"/contacts/{self.amy.pk}/stage/", {"stage": "met", "context": "row"}, **HX)
+        html = response.content.decode()
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("<html", html)
+        self.assertIn(f'id="contact-{self.amy.pk}"', html)
+        self.assertIn('aria-label="Change stage, currently Met"', html)
+        self.assertIn("Stage updated", response["HX-Trigger"])
+        self.assertNotIn("Stage updated", self.client.get("/contacts/").content.decode())
+
+    def test_stage_htmx_panel_context_returns_panel(self):
+        response = self.client.post(f"/contacts/{self.amy.pk}/stage/", {"stage": "met", "context": "panel"}, **HX)
+        self.assertContains(response, f'id="stage-panel-{self.amy.pk}"')
+        self.assertNotContains(response, "contact-row")
+
+    def test_htmx_post_passes_csrf_with_header(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.alice)
+        client.get("/contacts/")
+        token = client.cookies["csrftoken"].value
+        url = f"/contacts/{self.amy.pk}/stage/"
+        ok = client.post(url, {"stage": "met", "context": "row"}, HTTP_X_CSRFTOKEN=token, **HX)
+        self.assertEqual(ok.status_code, 200)
+        refused = client.post(url, {"stage": "inactive", "context": "row"}, **HX)
+        self.assertEqual(refused.status_code, 403)
+
+    def test_list_page_wires_htmx_attributes(self):
+        html = self.client.get("/contacts/").content.decode()
+        self.assertIn('hx-target="#contact-results"', html)
+        self.assertIn('hx-post="/contacts/', html)
+
+    def test_history_restore_gets_full_page(self):
+        response = self.client.get("/contacts/", HTTP_HX_REQUEST="true", HTTP_HX_HISTORY_RESTORE_REQUEST="true")
+        self.assertIn("<html", response.content.decode())

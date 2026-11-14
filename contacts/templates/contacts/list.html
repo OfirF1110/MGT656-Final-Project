@@ -14,13 +14,16 @@
     </div>
   </div>
 
-  <form method="get" action="{% url 'contacts:list' %}" class="toolbar" role="search">
+  <form method="get" action="{% url 'contacts:list' %}" class="toolbar" role="search"
+        hx-get="{% url 'contacts:list' %}" hx-target="#contact-results" hx-push-url="true" hx-indicator="#contact-results">
     <div class="search-field">
       <i class="bi bi-search" aria-hidden="true"></i>
       <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search name, company, or tag"
-             aria-label="Search contacts" autocomplete="off">
+             aria-label="Search contacts" autocomplete="off"
+             hx-get="{% url 'contacts:list' %}" hx-trigger="input changed delay:300ms, search" hx-include="closest form">
     </div>
-    <select name="stage" class="form-select stage-filter" aria-label="Filter by stage">
+    <select name="stage" class="form-select stage-filter" aria-label="Filter by stage"
+            hx-get="{% url 'contacts:list' %}" hx-trigger="change" hx-include="closest form">
       <option value="">All stages</option>
       {% for value, label in stage_choices %}
         <option value="{{ value }}"{% if value == stage %} selected{% endif %}>{{ label }}</option>
