@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 class Command(BaseCommand):
-    help = "Create/update demo grader admin and member accounts from environment variables."
+    help = "Create/update the grader admin and member accounts from environment variables, plus their demo contacts."
 
     def handle(self, *args, **options):
         User = get_user_model()
@@ -25,6 +25,9 @@ class Command(BaseCommand):
             accounts.append((username, password, role == "ADMIN"))
         if accounts[0][0].casefold() == accounts[1][0].casefold():
             raise CommandError("Admin and member usernames must differ.")
+        from contacts.demo import seed_demo_contacts
+
+        demo_added = 0
         with transaction.atomic():
             for username, password, admin in accounts:
                 user, created = User.objects.get_or_create(username=username)
@@ -36,4 +39,7 @@ class Command(BaseCommand):
                 if created:
                     user.set_password(password)
                 user.save()
-        self.stdout.write(self.style.SUCCESS("Grader accounts ready. No credentials printed."))
+                demo_added += seed_demo_contacts(user)
+        self.stdout.write(self.style.SUCCESS(
+            f"Grader accounts ready. Demo contacts added: {demo_added}. No credentials printed."
+        ))
