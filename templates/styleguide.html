@@ -58,7 +58,7 @@
   <section class="sg-section" aria-labelledby="sg-rows">
     <h2 class="panel-title" id="sg-rows">Contact rows (cards on phones)</h2>
     <div class="contact-table">
-      <div class="contact-head" aria-hidden="true"><span>Name</span><span>Tags</span><span>Stage</span><span>Last contact</span><span></span></div>
+      <div class="contact-head" aria-hidden="true"><span>Name</span><span class="col-tags">Tags</span><span>Stage</span><span>Last contact</span><span class="col-actions"></span></div>
       <ul class="contact-list">
         {% for contact in samples %}{% include 'contacts/_row.html' %}{% endfor %}
       </ul>

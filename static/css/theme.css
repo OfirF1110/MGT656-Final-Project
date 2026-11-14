@@ -445,10 +445,26 @@ a, button, summary, .btn { touch-action: manipulation; }
 .results-clear { font-size: .8125rem; }
 
 .contact-table { background: var(--oc-surface); border: 0; box-shadow: var(--oc-elev-1); border-radius: 12px; }
+/* Columns: name, tags, stage, last contact, quick actions. Narrower layouts drop tags (still on the detail
+   page and searchable) and touch devices drop the quick-action column; see the media queries below. */
+.contact-table { --contact-cols: minmax(0, 2fr) minmax(0, 1.3fr) minmax(168px, 1.1fr) 104px 68px; }
 .contact-head, .contact-row {
   display: grid; align-items: center; gap: 16px;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) minmax(176px, 1.1fr) 104px 68px;
+  grid-template-columns: var(--contact-cols);
   padding: 0 16px;
+}
+@media (any-hover: none) {
+  .contact-table { --contact-cols: minmax(0, 2fr) minmax(0, 1.3fr) minmax(168px, 1.1fr) 104px; }
+  .contact-head .col-actions { display: none; }
+}
+/* Content area under ~880px: tablets without the sidebar, or small laptops with it. */
+@media (min-width: 768px) and (max-width: 899.98px), (min-width: 1024px) and (max-width: 1199.98px) {
+  .contact-table { --contact-cols: minmax(0, 2fr) minmax(168px, 1fr) 104px 68px; }
+  .contact-head .col-tags, .contact-row .contact-tags { display: none; }
+}
+@media (any-hover: none) and (min-width: 768px) and (max-width: 899.98px),
+       (any-hover: none) and (min-width: 1024px) and (max-width: 1199.98px) {
+  .contact-table { --contact-cols: minmax(0, 2fr) minmax(168px, 1fr) 104px; }
 }
 .contact-head { min-height: 40px; color: var(--oc-muted); font-size: .75rem; border-bottom: 1px solid var(--oc-line); }
 .contact-list { list-style: none; margin: 0; padding: 0; }
