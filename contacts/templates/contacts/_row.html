@@ -1,0 +1,10 @@
+{% load contacts_ui %}
+<li class="contact-row{% if contact.stage == 'inactive' %} is-inactive{% endif %}" id="contact-{{ contact.pk }}">
+  <div class="contact-main">
+    <a class="contact-name" href="{{ contact.get_absolute_url }}">{{ contact.name }}</a>
+    {% if contact.subtitle %}<div class="contact-sub">{{ contact.subtitle }}</div>{% endif %}
+  </div>
+  <div class="contact-tags">{% for tag in contact.tags.all %}<span class="tag">{{ tag.name }}</span>{% endfor %}</div>
+  <div class="contact-stage">{% include 'contacts/_stage_menu.html' with menu_context='row' %}</div>
+  <div class="contact-date tnum"><span class="visually-hidden">Last contact </span>{{ contact.last_contact_date|short_date }}</div>
+</li>

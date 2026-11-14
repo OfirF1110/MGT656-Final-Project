@@ -1,10 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import ContactForm
-from .models import STAGE_MENU, Contact
+from .models import STAGE_MENU, Contact, Stage
 
 
 def get_contact_or_404(request, pk):
@@ -19,9 +20,36 @@ def _connections(contact):
     return sorted(pairs, key=lambda pair: pair[0].name.lower())
 
 
+def filter_contacts(queryset, q, stage):
+    """Search name, company and tag names (case-insensitive, partial) and filter by stage."""
+    if q:
+        queryset = queryset.filter(
+            Q(name__icontains=q) | Q(company__icontains=q) | Q(tags__name__icontains=q)
+        ).distinct()
+    if stage in Stage.values:
+        queryset = queryset.filter(stage=stage)
+    return queryset
+
+
 @login_required
 def contact_list(request):
-    raise Http404  # Replaced in Task 4.
+    q = request.GET.get("q", "").strip()
+    stage = request.GET.get("stage", "")
+    stage = stage if stage in Stage.values else ""
+    mine = Contact.objects.filter(owner=request.user)
+    contacts = list(filter_contacts(mine, q, stage).prefetch_related("tags"))
+    return render(request, "contacts/list.html", {
+        "contacts": contacts,
+        "count": len(contacts),
+        "total": mine.count(),
+        "q": q,
+        "stage": stage,
+        "is_filtered": bool(q or stage),
+        "stage_choices": Stage.choices,
+        "stage_menu": STAGE_MENU,
+        "next_url": request.get_full_path(),
+        "nav_active": "contacts",
+    })
 
 
 @login_required

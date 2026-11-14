@@ -191,3 +191,83 @@ class CreateEditTests(LoggedInTestCase):
     def test_anonymous_redirected_to_login(self):
         self.client.logout()
         self.assertRedirects(self.client.get("/contacts/new/"), "/login/?next=/contacts/new/")
+
+
+class ListSearchTests(LoggedInTestCase):
+    def setUp(self):
+        super().setUp()
+        self.amy = Contact.objects.create(owner=self.alice, name="Amy Chen", company="Goldman Sachs", stage="met")
+        self.amy.set_tags(["finance"])
+        self.david = Contact.objects.create(owner=self.alice, name="David Roy", company="McKinsey")
+        self.david.set_tags(["consulting"])
+        bob = make_user("bob")
+        Contact.objects.create(owner=bob, name="Goldie Hawn", company="Gold Films")
+
+    def test_list_shows_only_own_contacts(self):
+        response = self.client.get("/contacts/")
+        self.assertContains(response, "Amy Chen")
+        self.assertContains(response, "David Roy")
+        self.assertNotContains(response, "Goldie")
+        self.assertContains(response, "2 people")
+
+    def test_partial_case_insensitive_search_by_company(self):
+        for q in ("gold", "GOLD"):
+            response = self.client.get("/contacts/", {"q": q})
+            self.assertContains(response, "Amy Chen")
+            self.assertNotContains(response, "David Roy")
+            self.assertNotContains(response, "Goldie")
+            self.assertContains(response, "1 contact matches")
+
+    def test_search_by_name_and_tag(self):
+        response = self.client.get("/contacts/", {"q": "dav"})
+        self.assertContains(response, "David Roy")
+        self.assertNotContains(response, "Amy Chen")
+        response = self.client.get("/contacts/", {"q": "consult"})
+        self.assertContains(response, "David Roy")
+        self.assertNotContains(response, "Amy Chen")
+
+    def test_search_matching_several_tags_lists_contact_once(self):
+        self.amy.set_tags(["finance", "fintech"])
+        response = self.client.get("/contacts/", {"q": "fin"})
+        self.assertEqual(response.content.decode().count(f'id="contact-{self.amy.pk}"'), 1)
+
+    def test_stage_filter_combines_with_search(self):
+        response = self.client.get("/contacts/", {"stage": "met"})
+        self.assertContains(response, "Amy Chen")
+        self.assertNotContains(response, "David Roy")
+        response = self.client.get("/contacts/", {"stage": "met", "q": "roy"})
+        self.assertNotContains(response, "David Roy")
+        self.assertContains(response, "No contacts match")
+
+    def test_invalid_stage_is_ignored(self):
+        response = self.client.get("/contacts/", {"stage": "bogus"})
+        self.assertContains(response, "Amy Chen")
+        self.assertContains(response, "David Roy")
+
+    def test_no_results_message_escapes_query(self):
+        response = self.client.get("/contacts/", {"q": '<script>x"'})
+        self.assertContains(response, "No contacts match &quot;&lt;script&gt;x&quot;&quot;")
+        self.assertNotContains(response, "<script>x")
+
+    def test_empty_state_for_new_user(self):
+        self.client.force_login(make_user("carol"))
+        response = self.client.get("/contacts/")
+        self.assertContains(response, "Add your first contact")
+        self.assertContains(response, "0 people")
+
+    def test_sidebar_shows_contact_count(self):
+        response = self.client.get("/contacts/")
+        self.assertContains(response, '<span class="app-nav-count">2</span>')
+
+
+class LandingRedirectTests(TestCase):
+    def test_login_redirects_to_contacts(self):
+        make_user("alice")
+        response = self.client.post("/login/", {"username": "alice", "password": "Contacts-Test-Pass-731!"})
+        self.assertRedirects(response, "/contacts/")
+
+    def test_home_redirects_logged_in_user(self):
+        self.client.force_login(make_user("alice"))
+        self.assertRedirects(self.client.get("/"), "/contacts/")
+        self.client.logout()
+        self.assertEqual(self.client.get("/").status_code, 200)

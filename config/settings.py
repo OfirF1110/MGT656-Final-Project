@@ -27,7 +27,7 @@ MIDDLEWARE = [
 ]
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "DIRS": [BASE_DIR / "templates"], "APP_DIRS": True,
-    "OPTIONS": {"context_processors": ["django.template.context_processors.request", "django.contrib.auth.context_processors.auth", "django.contrib.messages.context_processors.messages"]}}]
+    "OPTIONS": {"context_processors": ["django.template.context_processors.request", "django.contrib.auth.context_processors.auth", "django.contrib.messages.context_processors.messages", "contacts.context_processors.nav"]}}]
 WSGI_APPLICATION = "config.wsgi.application"
 database_url = os.environ.get("DATABASE_URL")
 if database_url:
@@ -57,7 +57,7 @@ if TESTING:
     STORAGES["staticfiles"] = {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/login/"
-LOGIN_REDIRECT_URL = "/account/"
+LOGIN_REDIRECT_URL = "/contacts/"
 LOGOUT_REDIRECT_URL = "/login/"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = not DEBUG

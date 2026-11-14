@@ -29,7 +29,7 @@ class FoundationTests(TestCase):
             self.assertEqual(user.is_superuser, role == "ADMIN")
             self.assertNotEqual(user.password, CREDS[f"GRADER_{role}_PASSWORD"])
             response = self.client.post("/login/", {"username": user.username, "password": CREDS[f"GRADER_{role}_PASSWORD"]})
-            self.assertRedirects(response, "/account/")
+            self.assertRedirects(response, "/contacts/")
             self.assertContains(self.client.get("/account/"), user.username)
             self.assertEqual(self.client.get("/logout/").status_code, 405)
             self.assertRedirects(self.client.post("/logout/"), "/login/")
@@ -40,7 +40,7 @@ class FoundationTests(TestCase):
         call_command("seed", verbosity=0)
         self.assertContains(self.client.post("/login/", {"username": CREDS["GRADER_MEMBER_USERNAME"], "password": "wrong"}), "Please enter a correct")
         response = self.client.post("/login/", {"username": CREDS["GRADER_MEMBER_USERNAME"], "password": CREDS["GRADER_MEMBER_PASSWORD"], "next": "https://example.com/"})
-        self.assertRedirects(response, "/account/")
+        self.assertRedirects(response, "/contacts/")
 
     @patch.dict(os.environ, {**CREDS, "GRADER_MEMBER_PASSWORD": ""})
     def test_missing_secret_creates_no_accounts(self):

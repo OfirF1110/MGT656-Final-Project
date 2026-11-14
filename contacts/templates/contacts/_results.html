@@ -1,0 +1,32 @@
+{% if is_filtered and contacts %}
+  <p class="results-line tnum">
+    {% if q %}{{ count }} contact{{ count|pluralize }} match{{ count|pluralize:"es," }} &quot;{{ q }}&quot;{% else %}{{ count }} contact{{ count|pluralize }}{% endif %}
+    <a href="{% url 'contacts:list' %}" class="results-clear">Clear search</a>
+  </p>
+{% endif %}
+{% if contacts %}
+  <div class="contact-table">
+    <div class="contact-head" aria-hidden="true">
+      <span>Name</span><span>Tags</span><span>Stage</span><span>Last contact</span>
+    </div>
+    <ul class="contact-list">
+      {% for contact in contacts %}
+        {% include 'contacts/_row.html' %}
+      {% endfor %}
+    </ul>
+  </div>
+{% elif is_filtered %}
+  <div class="empty-state">
+    <div class="empty-icon" aria-hidden="true"><i class="bi bi-search"></i></div>
+    <p class="empty-title">{% if q %}No contacts match &quot;{{ q }}&quot;{% else %}No contacts in this stage{% endif %}</p>
+    <p class="empty-body">Try a different name, company, or tag.</p>
+    <a href="{% url 'contacts:list' %}" class="btn btn-quiet">Clear search</a>
+  </div>
+{% else %}
+  <div class="empty-state">
+    <div class="empty-icon" aria-hidden="true"><i class="bi bi-people"></i></div>
+    <p class="empty-title">Add your first contact</p>
+    <p class="empty-body">Keep track of who you know and where each conversation stands.</p>
+    <a href="{% url 'contacts:create' %}" class="btn btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i>Add contact</a>
+  </div>
+{% endif %}
