@@ -15,15 +15,16 @@
   </div>
 
   <form method="get" action="{% url 'contacts:list' %}" class="toolbar" role="search"
-        hx-get="{% url 'contacts:list' %}" hx-target="#contact-results" hx-push-url="true" hx-indicator="#contact-results">
+        hx-get="{% url 'contacts:list' %}" hx-target="#contact-results" hx-replace-url="true" hx-indicator="#contact-results">
     <div class="search-field">
       <i class="bi bi-search" aria-hidden="true"></i>
       <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search name, company, or tag"
              aria-label="Search contacts" autocomplete="off"
-             hx-get="{% url 'contacts:list' %}" hx-trigger="input changed delay:300ms, search" hx-include="closest form">
+             hx-get="{% url 'contacts:list' %}" hx-trigger="input changed delay:300ms, search" hx-include="closest form"
+             hx-replace-url="true">
     </div>
     <select name="stage" class="form-select stage-filter" aria-label="Filter by stage"
-            hx-get="{% url 'contacts:list' %}" hx-trigger="change" hx-include="closest form">
+            hx-get="{% url 'contacts:list' %}" hx-trigger="change" hx-include="closest form" hx-replace-url="true">
       <option value="">All stages</option>
       {% for value, label in stage_choices %}
         <option value="{{ value }}"{% if value == stage %} selected{% endif %}>{{ label }}</option>
@@ -32,7 +33,8 @@
     <button type="submit" class="btn btn-quiet js-hide">Search</button>
   </form>
 
-  <div id="contact-results" aria-live="polite">
+  <p id="results-status" class="visually-hidden" role="status">{% include 'contacts/_status_text.html' %}</p>
+  <div id="contact-results">
     {% include 'contacts/_results.html' %}
   </div>
 {% endblock %}

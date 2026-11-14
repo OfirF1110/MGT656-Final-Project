@@ -16,6 +16,7 @@
         integrity="sha384-nWN3KqaaVcbEsCjLSV+2jMjh62Iny/+mN3srM8TZeM8N6aj7eDl5wwYggjAJ4/sJ"
         crossorigin="anonymous">
   <link href="{% static 'css/theme.css' %}" rel="stylesheet">
+  {% block head_extra %}{% endblock %}
 </head>
 {% block body %}
 <body class="public">

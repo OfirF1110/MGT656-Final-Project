@@ -1,0 +1,1 @@
+{% if q %}{% if count %}{{ count }} contact{{ count|pluralize }} match{{ count|pluralize:"es," }} &quot;{{ q }}&quot;{% else %}No contacts match &quot;{{ q }}&quot;{% endif %}{% else %}{{ count }} contact{{ count|pluralize }}{% endif %}

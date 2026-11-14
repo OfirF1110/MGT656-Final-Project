@@ -25,6 +25,7 @@
 
   var SAVE_ERROR = "Couldn't save. Check your connection and try again.";
   var LOAD_ERROR = "Couldn't load results. Check your connection and try again.";
+  var SESSION_CHANGED = "Your session changed. Reload the page and try again.";
 
   function closeStageMenus(except) {
     document.querySelectorAll("details.stage-menu[open]").forEach(function (menu) {
@@ -44,11 +45,50 @@
 
     // Failed htmx requests leave the page as it was and say so.
     function onFailure(event) {
-      var verb = (event.detail && event.detail.requestConfig && event.detail.requestConfig.verb) || "get";
+      var detail = event.detail || {};
+      if (detail.xhr && detail.xhr.status === 403) {
+        toast(SESSION_CHANGED, "error");
+        return;
+      }
+      var verb = (detail.requestConfig && detail.requestConfig.verb) || "get";
       toast(verb === "get" ? LOAD_ERROR : SAVE_ERROR, "error");
     }
     document.body.addEventListener("htmx:responseError", onFailure);
     document.body.addEventListener("htmx:sendError", onFailure);
+
+    // Session ended (the request was redirected to the login page): go to a real login
+    // page instead of swapping the login form into the list.
+    document.body.addEventListener("htmx:beforeSwap", function (event) {
+      var xhr = event.detail && event.detail.xhr;
+      if (xhr && xhr.responseURL && xhr.responseURL.indexOf("/login/") !== -1) {
+        event.detail.shouldSwap = false;
+        window.location.href = "/login/?next=" + encodeURIComponent(window.location.pathname + window.location.search);
+      }
+    });
+
+    // After an inline stage change, put focus back on the same stage control,
+    // so keyboard users don't restart from the top of the page.
+    var refocusId = null;
+    document.body.addEventListener("htmx:beforeRequest", function (event) {
+      var form = event.detail && event.detail.elt;
+      var host = form && form.closest && form.closest(".stage-popover") && form.closest(".contact-row, .stage-panel");
+      refocusId = host ? host.id : null;
+    });
+    document.body.addEventListener("htmx:afterSettle", function () {
+      if (!refocusId) return;
+      var host = document.getElementById(refocusId);
+      refocusId = null;
+      var trigger = host && host.querySelector("summary.stage-trigger");
+      if (trigger) trigger.focus();
+    });
+
+    // Drop any htmx history snapshots when logging out (belt and braces; the cache is off).
+    document.addEventListener("submit", function (event) {
+      var action = event.target.getAttribute("action") || "";
+      if (/\/logout\/$/.test(action)) {
+        try { window.localStorage.removeItem("htmx-history-cache"); } catch (e) { /* storage blocked */ }
+      }
+    });
 
     // Stage menus: one open at a time; close on outside click or Escape.
     document.addEventListener("toggle", function (event) {

@@ -1,3 +1,4 @@
+{% if is_htmx %}<p id="results-status" hx-swap-oob="innerHTML">{% include 'contacts/_status_text.html' %}</p>{% endif %}
 {% if is_filtered and contacts %}
   <p class="results-line tnum">
     {% if q %}{{ count }} contact{{ count|pluralize }} match{{ count|pluralize:"es," }} &quot;{{ q }}&quot;{% else %}{{ count }} contact{{ count|pluralize }}{% endif %}

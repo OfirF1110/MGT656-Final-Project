@@ -60,6 +60,7 @@ def contact_list(request):
         "stage": stage,
         "stage_label": Stage(stage).label if stage else "",
         "is_filtered": bool(q or stage),
+        "is_htmx": is_htmx(request),
         "stage_choices": Stage.choices,
         "stage_menu": STAGE_MENU,
         "next_url": request.get_full_path(),

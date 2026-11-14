@@ -425,3 +425,52 @@ class PolishTests(LoggedInTestCase):
         html = self.client.get("/contacts/new/").content.decode()
         name_input = html[html.index('id="id_name"') - 200: html.index('id="id_name"') + 50]
         self.assertNotIn("placeholder", name_input)
+
+
+class ReviewFixTests(LoggedInTestCase):
+    def setUp(self):
+        super().setUp()
+        Contact.objects.create(owner=self.alice, name="Amy Chen", company="Goldman Sachs")
+
+    def test_htmx_history_cache_is_disabled(self):
+        html = self.client.get("/contacts/").content.decode()
+        self.assertIn('<meta name="htmx-config" content=\'{"historyCacheSize": 0}\'>', html)
+
+    def test_live_region_is_a_short_status_outside_results(self):
+        html = self.client.get("/contacts/", {"q": "gold"}).content.decode()
+        results = html[html.index('id="contact-results"') - 60: html.index('id="contact-results"') + 60]
+        self.assertNotIn("aria-live", results)
+        self.assertIn('id="results-status" class="visually-hidden" role="status"', html)
+        self.assertLess(html.index('id="results-status"'), html.index('id="contact-results"'))
+
+    def test_htmx_results_update_status_out_of_band(self):
+        html = self.client.get("/contacts/", {"q": "gold"}, **HX).content.decode()
+        self.assertIn('id="results-status"', html)
+        self.assertIn('hx-swap-oob="innerHTML"', html)
+        self.assertIn("1 contact matches &quot;gold&quot;", html)
+        html = self.client.get("/contacts/", {"q": "zzz"}, **HX).content.decode()
+        self.assertIn("No contacts match &quot;zzz&quot;", html[html.index('id="results-status"'):])
+
+    def test_live_search_replaces_url_instead_of_adding_history(self):
+        html = self.client.get("/contacts/").content.decode()
+        search_input = html[html.index('name="q"'): html.index('name="q"') + 500]
+        self.assertIn('hx-replace-url="true"', search_input)
+        self.assertNotIn("hx-push-url", html)
+
+
+class StaticAssetTests(TestCase):
+    def test_every_static_reference_in_templates_exists(self):
+        import re
+        from pathlib import Path
+
+        from django.conf import settings
+        from django.contrib.staticfiles import finders
+
+        refs = set()
+        for path in Path(settings.BASE_DIR).glob("**/templates/**/*.html"):
+            if ".venv" in path.parts or "staticfiles" in path.parts:
+                continue
+            refs.update(re.findall(r"{%\s*static\s+'([^']+)'\s*%}", path.read_text(encoding="utf-8")))
+        self.assertIn("css/theme.css", refs)
+        missing = sorted(ref for ref in refs if not finders.find(ref))
+        self.assertEqual(missing, [])

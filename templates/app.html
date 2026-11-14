@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block head_extra %}
+  {# No htmx page snapshots in localStorage: they would outlive logout on shared computers. #}
+  <meta name="htmx-config" content='{"historyCacheSize": 0}'>
+{% endblock %}
 {% block body %}
 <body class="app" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <a class="skip-link" href="#main">Skip to content</a>
