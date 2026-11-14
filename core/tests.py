@@ -80,3 +80,17 @@ class ShellTests(TestCase):
         html = self.client.get("/account/").content.decode()
         self.assertIn('class="app-sidebar', html)
         self.assertIn('<form method="post" action="/logout/"', html)
+
+
+class StyleguideTests(TestCase):
+    def test_styleguide_is_staff_only(self):
+        self.assertRedirects(self.client.get("/styleguide/"), "/login/?next=/styleguide/")
+        member = get_user_model().objects.create_user("member", password="Style-Test-Pass-284!")
+        self.client.force_login(member)
+        self.assertEqual(self.client.get("/styleguide/").status_code, 404)
+        staff = get_user_model().objects.create_user("staff", password="Style-Test-Pass-284!", is_staff=True)
+        self.client.force_login(staff)
+        response = self.client.get("/styleguide/")
+        self.assertEqual(response.status_code, 200)
+        for label in ("To contact", "Awaiting reply", "In conversation", "Meeting set", "Met", "Inactive"):
+            self.assertContains(response, label)

@@ -428,3 +428,14 @@ body.public { min-height: 100vh; }
 #contact-results { transition: opacity .12s; }
 #contact-results.htmx-request { opacity: .55; }
 .stage-popover.htmx-request { opacity: .6; pointer-events: none; }
+
+/* ---------- Styleguide ---------- */
+.sg-section { margin-bottom: 16px; }
+.sg-section + .sg-section { margin-top: 0; }
+.sg-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.sg-swatch { display: grid; grid-template-columns: 28px 1fr; column-gap: 10px; font-size: .8125rem; align-items: center; }
+.sg-swatch .sg-chip { grid-row: span 3; width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--oc-line); }
+.sg-swatch code { color: var(--oc-muted); font-size: .75rem; }
+.sg-stage-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.sg-stage-list li { display: flex; align-items: center; gap: 8px; }
+.sg-stage-list code { margin-left: auto; color: var(--oc-subtle); font-size: .75rem; }

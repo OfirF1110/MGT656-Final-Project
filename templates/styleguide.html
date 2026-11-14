@@ -1,0 +1,85 @@
+{% extends 'app.html' %}
+{% load contacts_ui %}
+{% block title %}Styleguide · OfferChat{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Styleguide</h1>
+      <p class="page-meta">Every shared component, rendered by the real templates and theme. Rules live in docs/design/ui-guidelines.md.</p>
+    </div>
+  </div>
+
+  <section class="panel sg-section" aria-labelledby="sg-colors">
+    <h2 class="panel-title" id="sg-colors">Color</h2>
+    <div class="sg-swatches">
+      {% for name, hex, use in swatches %}
+        <div class="sg-swatch"><span class="sg-chip" style="background: {{ hex }}"></span><strong>{{ name }}</strong><code>{{ hex }}</code><span class="text-muted-oc">{{ use }}</span></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel sg-section" aria-labelledby="sg-type">
+    <h2 class="panel-title" id="sg-type">Type (Geist)</h2>
+    <p class="page-title mb-1">Page title 24/600</p>
+    <p class="mb-1" style="font-size:1rem;font-weight:500">Emphasis 16/500</p>
+    <p class="mb-1">Body 14/400. Dates use tabular numbers: <span class="tnum">Nov 10, Oct 1</span></p>
+    <p class="text-muted-oc mb-0" style="font-size:.8125rem">Meta 13/400</p>
+  </section>
+
+  <section class="panel sg-section" aria-labelledby="sg-buttons">
+    <h2 class="panel-title" id="sg-buttons">Buttons (one primary per page)</h2>
+    <div class="d-flex flex-wrap gap-2">
+      <span class="btn btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i>Add contact</span>
+      <span class="btn btn-quiet"><i class="bi bi-pencil" aria-hidden="true"></i>Edit</span>
+      <span class="btn btn-danger-quiet"><i class="bi bi-trash3" aria-hidden="true"></i>Delete</span>
+      <span class="btn btn-danger">Delete contact</span>
+      <span class="btn btn-text">Cancel</span>
+    </div>
+  </section>
+
+  <section class="panel sg-section" aria-labelledby="sg-forms">
+    <h2 class="panel-title" id="sg-forms">Form fields</h2>
+    <div class="field-row">
+      {% include 'components/_field.html' with field=error_form.name %}
+      {% include 'components/_field.html' with field=error_form.tags optional=True %}
+    </div>
+  </section>
+
+  <section class="panel sg-section" aria-labelledby="sg-stages">
+    <h2 class="panel-title" id="sg-stages">Stages</h2>
+    <ul class="sg-stage-list">
+      {% for stage in stages %}
+        <li>{% stage_icon stage.value %}<span>{{ stage.label }}</span><code>{{ stage.value }}</code></li>
+      {% endfor %}
+    </ul>
+    <p class="text-muted-oc mb-0" style="font-size:.8125rem">Shape shows progress, color shows the group (gray not started, accent active, green met, light dashed inactive). Always render the label next to the icon.</p>
+  </section>
+
+  <section class="sg-section" aria-labelledby="sg-rows">
+    <h2 class="panel-title" id="sg-rows">Contact rows (cards on phones)</h2>
+    <div class="contact-table">
+      <div class="contact-head" aria-hidden="true"><span>Name</span><span>Tags</span><span>Stage</span><span>Last contact</span></div>
+      <ul class="contact-list">
+        {% for contact in samples %}{% include 'contacts/_row.html' %}{% endfor %}
+      </ul>
+    </div>
+  </section>
+
+  <section class="sg-section" aria-labelledby="sg-empty">
+    <h2 class="panel-title" id="sg-empty">Empty state</h2>
+    <div class="empty-state">
+      <div class="empty-icon" aria-hidden="true"><i class="bi bi-people"></i></div>
+      <p class="empty-title">Add your first contact</p>
+      <p class="empty-body">Keep track of who you know and where each conversation stands.</p>
+      <span class="btn btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i>Add contact</span>
+    </div>
+  </section>
+
+  <section class="panel sg-section" aria-labelledby="sg-toast">
+    <h2 class="panel-title" id="sg-toast">Toasts</h2>
+    <div class="d-flex flex-wrap gap-2">
+      <div class="oc-toast" style="animation:none">Stage updated</div>
+      <div class="oc-toast oc-toast--error" style="animation:none">Couldn't save. Check your connection and try again.</div>
+    </div>
+  </section>
+{% endblock %}
