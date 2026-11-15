@@ -29,7 +29,7 @@ class FoundationTests(TestCase):
             self.assertEqual(user.is_superuser, role == "ADMIN")
             self.assertNotEqual(user.password, CREDS[f"GRADER_{role}_PASSWORD"])
             response = self.client.post("/login/", {"username": user.username, "password": CREDS[f"GRADER_{role}_PASSWORD"]})
-            self.assertRedirects(response, "/account/")
+            self.assertRedirects(response, "/contacts/")
             self.assertContains(self.client.get("/account/"), user.username)
             self.assertEqual(self.client.get("/logout/").status_code, 405)
             self.assertRedirects(self.client.post("/logout/"), "/login/")
@@ -40,7 +40,7 @@ class FoundationTests(TestCase):
         call_command("seed", verbosity=0)
         self.assertContains(self.client.post("/login/", {"username": CREDS["GRADER_MEMBER_USERNAME"], "password": "wrong"}), "Please enter a correct")
         response = self.client.post("/login/", {"username": CREDS["GRADER_MEMBER_USERNAME"], "password": CREDS["GRADER_MEMBER_PASSWORD"], "next": "https://example.com/"})
-        self.assertRedirects(response, "/account/")
+        self.assertRedirects(response, "/contacts/")
 
     @patch.dict(os.environ, {**CREDS, "GRADER_MEMBER_PASSWORD": ""})
     def test_missing_secret_creates_no_accounts(self):
@@ -56,3 +56,70 @@ class FoundationTests(TestCase):
         self.assertEqual(get_user_model().objects.count(), 1)
         user.refresh_from_db()
         self.assertTrue(user.check_password("Existing-Different-Secret-321"))
+
+
+class ShellTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("shell-user", password="Shell-Test-Pass-482!")
+
+    def test_ab_page_has_exactly_one_button(self):
+        for logged_in in (False, True):
+            if logged_in:
+                self.client.force_login(self.user)
+            html = self.client.get("/020c45f").content.decode()
+            self.assertEqual(html.count("<button"), 1, f"logged_in={logged_in}")
+            self.assertIn('id="abtest"', html)
+
+    def test_login_page_uses_theme_without_app_nav(self):
+        html = self.client.get("/login/").content.decode()
+        self.assertIn("css/theme.css", html)
+        self.assertNotIn('class="app-sidebar', html)
+
+    def test_account_page_uses_app_shell_with_post_logout(self):
+        self.client.force_login(self.user)
+        html = self.client.get("/account/").content.decode()
+        self.assertIn('class="app-sidebar', html)
+        self.assertIn('<form method="post" action="/logout/"', html)
+
+
+class StyleguideTests(TestCase):
+    def test_styleguide_is_staff_only(self):
+        self.assertRedirects(self.client.get("/styleguide/"), "/login/?next=/styleguide/")
+        member = get_user_model().objects.create_user("member", password="Style-Test-Pass-284!")
+        self.client.force_login(member)
+        self.assertEqual(self.client.get("/styleguide/").status_code, 404)
+        staff = get_user_model().objects.create_user("staff", password="Style-Test-Pass-284!", is_staff=True)
+        self.client.force_login(staff)
+        response = self.client.get("/styleguide/")
+        self.assertEqual(response.status_code, 200)
+        for label in ("To contact", "Awaiting reply", "In conversation", "Meeting set", "Met", "Inactive"):
+            self.assertContains(response, label)
+
+
+class ResponsiveShellTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("shell-user", password="Shell-Test-Pass-482!")
+        self.client.force_login(self.user)
+
+    def test_viewport_allows_safe_area_insets(self):
+        html = self.client.get("/account/").content.decode()
+        self.assertIn('content="width=device-width, initial-scale=1, viewport-fit=cover"', html)
+
+    def test_bottom_tab_bar_links_contacts_add_and_account(self):
+        html = self.client.get("/contacts/").content.decode()
+        start = html.index('<nav class="app-tabbar"')
+        tabbar = html[start:html.index("</nav>", start)]
+        self.assertIn('href="/contacts/"', tabbar)
+        self.assertIn('href="/contacts/new/"', tabbar)
+        self.assertIn('href="/account/"', tabbar)
+        self.assertIn('aria-current="page"', tabbar)
+
+    def test_account_page_offers_log_out_in_content(self):
+        html = self.client.get("/account/").content.decode()
+        main = html[html.index('<main id="main"'):]
+        self.assertIn('<form method="post" action="/logout/"', main)
+
+    def test_public_pages_have_no_tab_bar(self):
+        self.client.logout()
+        for url in ("/login/", "/020c45f"):
+            self.assertNotIn("app-tabbar", self.client.get(url).content.decode())

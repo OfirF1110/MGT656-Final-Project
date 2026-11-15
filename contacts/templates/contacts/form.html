@@ -1,0 +1,35 @@
+{% extends 'app.html' %}
+{% load ui %}
+{% block title %}{% if contact %}Edit {{ contact.name }}{% else %}Add contact{% endif %} · OfferChat{% endblock %}
+{% block content %}
+  {% if contact %}
+    <a href="{{ contact.get_absolute_url }}" class="back-link"><i class="bi bi-arrow-left" aria-hidden="true"></i>{{ contact.name }}</a>
+  {% else %}
+    <a href="{% url 'contacts:list' %}" class="back-link"><i class="bi bi-arrow-left" aria-hidden="true"></i>Contacts</a>
+  {% endif %}
+  <div class="page-head">
+    <h1 class="page-title">{% if contact %}Edit contact{% else %}Add contact{% endif %}</h1>
+  </div>
+
+  <form method="post" class="panel form-panel" novalidate>
+    {% csrf_token %}
+    {% if form.errors %}
+      <div class="form-alert" role="alert">Fix the highlighted fields to save this contact.</div>
+    {% endif %}
+
+    {% include 'components/_field.html' with field=form.name %}
+    <div class="field-row">
+      {% include 'components/_field.html' with field=form.company optional=True %}
+      {% include 'components/_field.html' with field=form.role optional=True %}
+    </div>
+    {% include 'components/_field.html' with field=form.stage css="form-select" %}
+    {% include 'components/_field.html' with field=form.linkedin_url optional=True %}
+    {% include 'components/_field.html' with field=form.tags optional=True %}
+    {% include 'components/_field.html' with field=form.notes optional=True %}
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% if contact %}Save changes{% else %}Add contact{% endif %}</button>
+      <a href="{% if contact %}{{ contact.get_absolute_url }}{% else %}{% url 'contacts:list' %}{% endif %}" class="btn btn-text">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

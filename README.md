@@ -73,14 +73,25 @@ After configuring the environment:
 .\.venv\Scripts\python.exe manage.py runserver
 ```
 
-Open http://127.0.0.1:8000/login/ and use a seeded account. The account page
-is protected; `/health/` checks database connectivity. Logout uses a POST form.
+Open http://127.0.0.1:8000/login/ and use a seeded account. After logging in you land
+on your contacts (`/contacts/`); all app pages are protected. `/health/` checks database
+connectivity. Logout uses a POST form. Staff users can open `/styleguide/` to see every UI component.
 
 **After any database reset, rerun migrations and `python manage.py seed`.**
 Running seed again with the same credentials is safe and creates no duplicates.
 It refuses to overwrite an existing same-name account with a different password.
 The skeleton's demo data currently consists of the two grader accounts.
 Keep their passwords in private environment settings and course submission notes.
+
+## Docs
+
+| Doc | For |
+|---|---|
+| [AGENTS.md](AGENTS.md) | Project rules, commands and layout for teammates and AI agents (`CLAUDE.md` points here) |
+| [docs/design/ui-guidelines.md](docs/design/ui-guidelines.md) | UI tokens, components, writing and the "add a page" checklist |
+| [docs/design/contacts.md](docs/design/contacts.md) | Design of contact management (#10) and the app shell |
+| [.github/pull_request_template.md](.github/pull_request_template.md) | What every pull request description contains |
+| `docs/mgt656/` | Course-graded team, sprint and technical docs |
 
 ## Automated Tests
 

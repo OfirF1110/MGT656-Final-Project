@@ -1,0 +1,43 @@
+{% extends 'app.html' %}
+{% block title %}Contacts · OfferChat{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Contacts</h1>
+      <p class="page-meta tnum">{{ total }} {{ total|pluralize:"person,people" }}</p>
+    </div>
+    <div class="page-actions list-actions">
+      <a href="{% url 'contacts:create' %}" class="btn btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i>Add contact</a>
+    </div>
+  </div>
+
+  <form method="get" action="{% url 'contacts:list' %}" class="toolbar" role="search"
+        hx-get="{% url 'contacts:list' %}" hx-target="#contact-results" hx-replace-url="true" hx-indicator="#contact-results">
+    <div class="search-field">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search name, company, or tag"
+             aria-label="Search contacts" autocomplete="off"
+             hx-get="{% url 'contacts:list' %}" hx-trigger="input changed delay:300ms, search" hx-include="closest form"
+             hx-replace-url="true">
+    </div>
+    <select name="stage" class="form-select stage-filter" aria-label="Filter by stage"
+            hx-get="{% url 'contacts:list' %}" hx-trigger="change" hx-include="closest form" hx-replace-url="true">
+      <option value="">All stages</option>
+      {% for value, label in stage_choices %}
+        <option value="{{ value }}"{% if value == stage %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="sort" class="form-select sort-select" aria-label="Sort contacts"
+            hx-get="{% url 'contacts:list' %}" hx-trigger="change" hx-include="closest form" hx-replace-url="true">
+      {% for value, label in sort_choices %}
+        <option value="{{ value }}"{% if value == sort %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-quiet js-hide">Search</button>
+  </form>
+
+  <p id="results-status" class="visually-hidden" role="status">{% include 'contacts/_status_text.html' %}</p>
+  <div id="contact-results">
+    {% include 'contacts/_results.html' %}
+  </div>
+{% endblock %}

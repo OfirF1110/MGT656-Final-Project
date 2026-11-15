@@ -1,8 +1,24 @@
-{% extends 'base.html' %}
-{% block content %}
-  <h1 class="h2 mb-3">Your account</h1>
-  <p class="text-break">Logged in as {{ user.username }}.</p>
-  {% if user.is_staff %}
-    <a href="/admin/" class="btn btn-outline-primary">Django administration</a>
-  {% endif %}
+{% extends 'app.html' %}
+{% block title %}Your account · OfferChat{% endblock %}
+{% block content %}{# nav_active is set by the view #}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Your account</h1>
+      <p class="page-meta">Signed in as <span class="text-break">{{ user.username }}</span></p>
+    </div>
+  </div>
+  <section class="panel" aria-labelledby="account-access">
+    <h2 class="panel-title" id="account-access">Access</h2>
+    <p class="mb-3">Logged in as {{ user.username }}.</p>
+    <div class="d-flex gap-2 flex-wrap">
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-quiet"><i class="bi bi-box-arrow-right" aria-hidden="true"></i>Log out</button>
+      </form>
+      {% if user.is_staff %}
+        <a href="/admin/" class="btn btn-quiet">Django administration</a>
+        <a href="{% url 'styleguide' %}" class="btn btn-quiet">Styleguide</a>
+      {% endif %}
+    </div>
+  </section>
 {% endblock %}
