@@ -1,11 +1,13 @@
 import json
+from urllib.parse import urlsplit
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import F, Q
 from django.db.models.functions import Lower
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.cache import patch_vary_headers
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -61,10 +63,14 @@ def filter_contacts(queryset, q, stage):
 
 @login_required
 def contact_list(request):
-    q = request.GET.get("q", "").strip()
-    stage = request.GET.get("stage", "")
+    return _contact_list_response(request, request.GET, request.get_full_path())
+
+
+def _contact_list_response(request, params, next_url):
+    q = params.get("q", "").strip()
+    stage = params.get("stage", "")
     stage = stage if stage in Stage.values else ""
-    sort = request.GET.get("sort", "updated")
+    sort = params.get("sort", "updated")
     sort = sort if sort in SORTS else "updated"
     mine = Contact.objects.filter(owner=request.user)
     contacts = list(sort_contacts(filter_contacts(mine, q, stage), sort).prefetch_related("tags"))
@@ -82,7 +88,7 @@ def contact_list(request):
         "sort": sort,
         "sort_choices": [(key, label) for key, (label, _) in SORTS.items()],
         "stage_menu": STAGE_MENU,
-        "next_url": request.get_full_path(),
+        "next_url": next_url,
         "nav_active": "contacts",
     })
     patch_vary_headers(response, ["HX-Request"])
@@ -139,11 +145,22 @@ def contact_stage(request, pk):
         contact.save()
     if is_htmx(request):
         in_row = request.POST.get("context") == "row"
-        response = render(request, "contacts/_row.html" if in_row else "contacts/_stage_panel.html", {
-            "contact": contact,
-            "stage_menu": STAGE_MENU,
-            "next_url": _safe_next(request, contact.get_absolute_url()),
-        })
+        if in_row:
+            list_url = reverse("contacts:list")
+            next_url = _safe_next(request, list_url)
+            parts = urlsplit(next_url)
+            # Only restore list filters, never render an arbitrary submitted URL.
+            params = QueryDict(parts.query) if parts.path == list_url else QueryDict()
+            next_url = list_url + ("?" + params.urlencode() if params else "")
+            response = _contact_list_response(request, params, next_url)
+            response["HX-Retarget"] = "#contact-results"
+            response["HX-Reswap"] = "innerHTML"
+        else:
+            response = render(request, "contacts/_stage_panel.html", {
+                "contact": contact,
+                "stage_menu": STAGE_MENU,
+                "next_url": _safe_next(request, contact.get_absolute_url()),
+            })
         response["HX-Trigger"] = json.dumps({"toast": "Stage updated"})
         return response
     messages.success(request, "Stage updated")

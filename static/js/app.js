@@ -67,19 +67,32 @@
     });
 
     // After an inline stage change, put focus back on the same stage control,
-    // so keyboard users don't restart from the top of the page.
+    // so keyboard users don't restart from the top of the page. If the row left
+    // the list (it no longer matches the filter), focus the row now in its place,
+    // else the last row, else the search box.
     var refocusId = null;
+    var refocusIndex = -1;
     document.body.addEventListener("htmx:beforeRequest", function (event) {
       var form = event.detail && event.detail.elt;
       var host = form && form.closest && form.closest(".stage-popover") && form.closest(".contact-row, .stage-panel");
       refocusId = host ? host.id : null;
+      refocusIndex = host && host.classList.contains("contact-row")
+        ? Array.prototype.indexOf.call(document.querySelectorAll(".contact-row"), host)
+        : -1;
     });
     document.body.addEventListener("htmx:afterSettle", function () {
       if (!refocusId) return;
       var host = document.getElementById(refocusId);
+      if (!host && refocusIndex >= 0) {
+        var rows = document.querySelectorAll(".contact-row");
+        host = rows[Math.min(refocusIndex, rows.length - 1)] || null;
+      }
       refocusId = null;
-      var trigger = host && host.querySelector("summary.stage-trigger");
-      if (trigger) trigger.focus();
+      refocusIndex = -1;
+      var target = host
+        ? host.querySelector("summary.stage-trigger")
+        : document.querySelector('input[name="q"]');
+      if (target) target.focus();
     });
 
     // On touch devices, hide the bottom tab bar while the on-screen keyboard is up

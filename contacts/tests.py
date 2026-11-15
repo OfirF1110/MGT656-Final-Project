@@ -654,3 +654,43 @@ class DemoSeedTests(TestCase):
             self.assertEqual(contact.connection_count(), 0)
         self.assertEqual(Contact.objects.filter(owner=user).count(), 10)
         self.assertIn("Demo contacts added: 0", self.run_seed())
+
+
+class StageListRefreshTests(LoggedInTestCase):
+    def test_stage_change_removes_contact_from_active_filter(self):
+        contact = Contact.objects.create(owner=self.alice, name="Amy", stage="met")
+        response = self.client.post(f"/contacts/{contact.pk}/stage/", {
+            "stage": "inactive", "context": "row", "next": "/contacts/?stage=met"}, **HX)
+        self.assertNotContains(response, f'id="contact-{contact.pk}"')
+        self.assertContains(response, "No contacts in Met")
+        self.assertContains(response, "0 contacts")
+        self.assertEqual(response["HX-Retarget"], "#contact-results")
+        self.assertEqual(response["HX-Reswap"], "innerHTML")
+
+    def test_refresh_preserves_search_sort_and_owner(self):
+        a = Contact.objects.create(owner=self.alice, name="Amy", company="Gold")
+        b = Contact.objects.create(owner=self.alice, name="Bob", company="Gold")
+        Contact.objects.create(owner=self.alice, name="Excluded", company="Other")
+        Contact.objects.create(owner=make_user("other"), name="Private", company="Gold")
+        response = self.client.post(f"/contacts/{b.pk}/stage/", {
+            "stage": "met", "context": "row", "next": "/contacts/?q=gold&sort=name"}, **HX)
+        html = response.content.decode()
+        self.assertLess(html.index(f'id="contact-{a.pk}"'), html.index(f'id="contact-{b.pk}"'))
+        self.assertNotContains(response, "Excluded")
+        self.assertNotContains(response, "Private")
+        self.assertContains(response, "2 contacts match")
+
+    def test_refresh_reorders_by_last_contact(self):
+        a = Contact.objects.create(owner=self.alice, name="Amy", last_contact_date=EARLIER)
+        b = Contact.objects.create(owner=self.alice, name="Bob")
+        response = self.client.post(f"/contacts/{b.pk}/stage/", {
+            "stage": "met", "context": "row", "next": "/contacts/?sort=last_contact"}, **HX)
+        html = response.content.decode()
+        self.assertLess(html.index(f'id="contact-{b.pk}"'), html.index(f'id="contact-{a.pk}"'))
+
+    def test_external_next_cannot_control_refresh(self):
+        a = Contact.objects.create(owner=self.alice, name="Amy")
+        response = self.client.post(f"/contacts/{a.pk}/stage/", {
+            "stage": "met", "context": "row", "next": "https://evil.example/contacts/?q=missing"}, **HX)
+        self.assertContains(response, "Amy")
+        self.assertNotContains(response, "evil.example")
