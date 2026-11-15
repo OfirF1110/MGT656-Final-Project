@@ -52,6 +52,7 @@ class Tag(models.Model):
 class Contact(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="contacts")
     name = models.CharField(max_length=120)
+    demo_key = models.CharField(max_length=40, null=True, blank=True, editable=False)
     company = models.CharField(max_length=120, blank=True)
     role = models.CharField(max_length=120, blank=True)
     linkedin_url = models.URLField(max_length=300, blank=True)
@@ -67,6 +68,7 @@ class Contact(models.Model):
         ordering = ["-updated_at", "-id"]
         constraints = [
             models.CheckConstraint(condition=models.Q(stage__in=Stage.values), name="contact_stage_valid"),
+            models.UniqueConstraint(fields=["owner", "demo_key"], name="unique_demo_key_per_owner"),
         ]
         indexes = [
             models.Index(fields=["owner", "stage"], name="contact_owner_stage_idx"),
