@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import Client, TestCase
 
-from .models import Connection, Contact, parse_tags
+from .models import Connection, Contact, Stage, parse_tags
 
 TODAY = date(2026, 11, 14)
 EARLIER = date(2026, 10, 1)
@@ -530,6 +530,130 @@ class ListPolishTests(LoggedInTestCase):
         self.assertIn('aria-label="Open Amy Chen"', html)
         self.assertIn('aria-label="Amy Chen on LinkedIn"', html)
         self.assertNotIn('aria-label="bob Stone on LinkedIn"', html)
+
+
+SEED_CREDS = {
+    "GRADER_ADMIN_USERNAME": "grader-admin@example.com",
+    "GRADER_ADMIN_PASSWORD": "Example-Only-Admin-752!",
+    "GRADER_MEMBER_USERNAME": "grader-member@example.com",
+    "GRADER_MEMBER_PASSWORD": "Example-Only-Member-981!",
+}
+
+
+@patch.dict("os.environ", SEED_CREDS)
+class DemoSeedTests(TestCase):
+    def run_seed(self):
+        from io import StringIO
+
+        from django.core.management import call_command
+        out = StringIO()
+        call_command("seed", stdout=out)
+        return out.getvalue()
+
+    def graders(self):
+        User = get_user_model()
+        return [User.objects.get(username=SEED_CREDS[f"GRADER_{r}_USERNAME"]) for r in ("ADMIN", "MEMBER")]
+
+    def snapshot(self):
+        from contacts.models import Tag
+        return (
+            sorted(Contact.objects.values_list("id", "owner_id", "name", "stage")),
+            sorted(Tag.objects.values_list("id", "owner_id", "name")),
+            sorted(Connection.objects.values_list("id", "from_contact_id", "to_contact_id")),
+        )
+
+    def test_seed_creates_demo_contacts_for_both_graders(self):
+        from contacts.demo import DEMO_CONTACTS
+        output = self.run_seed()
+        for grader in self.graders():
+            contacts = Contact.objects.filter(owner=grader)
+            self.assertEqual(contacts.count(), len(DEMO_CONTACTS))
+            self.assertEqual(set(contacts.values_list("stage", flat=True)), set(Stage.values))
+            self.assertTrue(grader.contact_tags.exists())
+            self.assertGreaterEqual(grader.contact_connections.count(), 2)
+            self.assertTrue(contacts.filter(last_contact_date__isnull=False).exists())
+        self.assertIn("Demo contacts added: 16", output)
+        self.assertNotIn(SEED_CREDS["GRADER_MEMBER_PASSWORD"], output)
+
+    def test_second_run_adds_nothing(self):
+        self.run_seed()
+        before = self.snapshot()
+        output = self.run_seed()
+        self.assertEqual(self.snapshot(), before)
+        self.assertIn("Demo contacts added: 0", output)
+
+    def test_rerun_keeps_grader_edits(self):
+        self.run_seed()
+        contact = Contact.objects.filter(owner=self.graders()[1]).first()
+        contact.notes = "Edited by a grader"
+        contact.stage = "inactive"
+        contact.save()
+        self.run_seed()
+        contact.refresh_from_db()
+        self.assertEqual((contact.notes, contact.stage), ("Edited by a grader", "inactive"))
+
+    def test_seed_still_creates_both_accounts(self):
+        self.run_seed()
+        admin, member = self.graders()
+        self.assertTrue(admin.is_superuser)
+        self.assertFalse(member.is_superuser)
+
+    def test_other_users_get_no_demo_data_and_keep_theirs(self):
+        other = make_user("someone-else")
+        Contact.objects.create(owner=other, name="My Real Contact")
+        self.run_seed()
+        self.assertEqual(list(Contact.objects.filter(owner=other).values_list("name", flat=True)), ["My Real Contact"])
+
+    def test_demo_data_is_clearly_fake(self):
+        from contacts.demo import DEMO_CONTACTS
+        for item in DEMO_CONTACTS:
+            url = item.get("linkedin_url", "")
+            self.assertTrue(url == "" or "offerchat-demo" in url, url)
+
+    def test_list_opens_on_the_richest_demo_contact(self):
+        self.run_seed()
+        self.client.force_login(self.graders()[1])
+        html = self.client.get("/contacts/").content.decode()
+        first = html.index('class="contact-name"')
+        self.assertIn(">Maya Okafor</a>", html[first:first + 120])
+
+
+    def test_rename_preserves_seed_identity(self):
+        self.run_seed()
+        user = self.graders()[1]
+        contact = Contact.objects.get(owner=user, demo_key="sample-contact-1")
+        links = list(Connection.objects.filter(owner=user).values_list("pk", flat=True))
+        contact.name = "Maya Renamed"
+        contact.save()
+        self.assertIn("Demo contacts added: 0", self.run_seed())
+        contact.refresh_from_db()
+        self.assertEqual(contact.name, "Maya Renamed")
+        self.assertEqual(Contact.objects.filter(owner=user).count(), 8)
+        self.assertEqual(list(Connection.objects.filter(owner=user).values_list("pk", flat=True)), links)
+
+    def test_same_name_contact_does_not_break_reseed(self):
+        self.run_seed()
+        user = self.graders()[1]
+        extra = Contact.objects.create(owner=user, name="Maya Okafor", notes="Real person")
+        self.assertIn("Demo contacts added: 0", self.run_seed())
+        extra.refresh_from_db()
+        self.assertIsNone(extra.demo_key)
+        self.assertEqual(extra.notes, "Real person")
+        self.assertEqual(Contact.objects.filter(owner=user, name="Maya Okafor").count(), 2)
+
+    def test_first_seed_leaves_existing_duplicates_alone(self):
+        user = get_user_model().objects.create_user(
+            SEED_CREDS["GRADER_MEMBER_USERNAME"], password=SEED_CREDS["GRADER_MEMBER_PASSWORD"])
+        records = [Contact.objects.create(owner=user, name="Maya Okafor", notes="Keep me") for _ in range(2)]
+        self.run_seed()
+        for contact in records:
+            contact.refresh_from_db()
+            self.assertIsNone(contact.demo_key)
+            self.assertEqual(contact.notes, "Keep me")
+            self.assertFalse(contact.tags.exists())
+            self.assertEqual(contact.connection_count(), 0)
+        self.assertEqual(Contact.objects.filter(owner=user).count(), 10)
+        self.assertIn("Demo contacts added: 0", self.run_seed())
 
 
 class StageListRefreshTests(LoggedInTestCase):

@@ -80,7 +80,8 @@ connectivity. Logout uses a POST form. Staff users can open `/styleguide/` to se
 **After any database reset, rerun migrations and `python manage.py seed`.**
 Running seed again with the same credentials is safe and creates no duplicates.
 It refuses to overwrite an existing same-name account with a different password.
-The skeleton's demo data currently consists of the two grader accounts.
+Seed also gives each grader account 8 fake sample contacts (all six stages, tags, notes and two
+connections; see `contacts/demo.py`). Re-running adds nothing and never overwrites a grader's edits.
 Keep their passwords in private environment settings and course submission notes.
 
 ## Docs

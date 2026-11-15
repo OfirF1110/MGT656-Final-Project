@@ -26,7 +26,8 @@ Run checks with `python manage.py check` and `python manage.py test`.
 Seed is transactional and safe to run repeatedly with the same credentials.
 It refuses to overwrite an existing user's different password. If intentionally
 changing grader credentials, coordinate a separate password reset first.
-Demo data for this skeleton consists of the two accounts; product data comes later.
+Seed also adds fake demo contacts for both grader accounts (`contacts/demo.py`). Existing contacts are
+never changed, so re-running is safe and adds nothing.
 
 ## Developer B integration
 
