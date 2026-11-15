@@ -38,6 +38,24 @@ only to protected views; the A/B page and stats must remain public. Templates
 for the A/B page must contain exactly one button with id="abtest". Do not place
 grader passwords, database URLs, session secrets or API keys in source files.
 
+## AI notes summary (#24)
+
+Set OPENROUTER_API_KEY and OPENROUTER_MODEL in the server environment. Both
+are required for summaries; never commit their values. Choose a text chat model
+that can return the requested JSON. The app uses OpenRouter's server-side chat
+completions endpoint, a 20-second timeout and a 500-token output limit.
+
+Visit /summaries/ after logging in. Paste notes and select "Summarize with AI".
+This first slice displays a two- or three-sentence summary without saving notes
+or summaries in the database. Empty input makes no API call. Provider failures
+and malformed output display an error while keeping the submitted text.
+The browser never receives the API key or calls OpenRouter directly.
+
+Run python manage.py test summaries for mocked coverage. No real API calls
+are made by tests. On staging, set both variables privately and test with invented
+meeting notes, then verify an empty submission and the unchanged A/B page.
+Check desktop (1440px), tablet (820px), and phone (390px) layouts.
+
 ## Review handoff
 
 Link the actual PO issue numbers in the PR before merging. Describe AI-produced
