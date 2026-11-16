@@ -27,6 +27,7 @@ python manage.py makemigrations --check --dry-run
 | `core/` | home, health, account, styleguide, seed command |
 | `abtest/` | course A/B page `/020c45f` and `/020c45f/stats` — do not change without the whole team |
 | `contacts/` | contacts, tags, connections, stage rule, htmx views |
+| `summaries/` | login-required, server-side OpenRouter summaries; notes and results are not saved |
 | `templates/` | `base.html` (public, no nav), `app.html` (logged-in shell), `components/` |
 | `static/css/theme.css`, `static/js/app.js` | theme tokens and components; toasts and htmx error handling |
 | `docs/design/` | design docs and UI guidelines |

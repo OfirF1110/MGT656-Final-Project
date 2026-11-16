@@ -63,4 +63,3 @@ def summarize_notes(notes):
         raise SummaryError("The AI service could not respond. Your notes are still here. Try again.") from None
     except (ValueError, KeyError, IndexError, TypeError, AttributeError, UnicodeError):
         raise SummaryError("The AI returned an unusable summary. Your notes are still here. Try again.") from None
-

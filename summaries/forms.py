@@ -7,4 +7,3 @@ class NotesForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 10, "class": "form-control"}),
         help_text="Up to 12,000 characters. Notes are sent to the AI provider when you submit.",
     )
-

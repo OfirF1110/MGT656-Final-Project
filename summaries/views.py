@@ -23,4 +23,3 @@ def summarize(request):
     return render(request, "summaries/form.html", {
         "form": form, "summary": summary, "error": error, "nav_active": "summaries",
     })
-

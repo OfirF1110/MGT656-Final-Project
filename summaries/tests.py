@@ -115,6 +115,9 @@ class SummaryPageTests(TestCase):
             for notes in ["", " \n\t "]:
                 response = self.client.post(self.url, {"notes": notes})
                 self.assertContains(response, "Paste some notes first")
+                self.assertContains(response, "is-invalid")
+                self.assertContains(response, 'aria-invalid="true"')
+                self.assertContains(response, 'id="id_notes-error"')
             call.assert_not_called()
 
     def test_long_notes_make_no_call(self):
@@ -131,6 +134,9 @@ class SummaryPageTests(TestCase):
                 response = self.client.post(self.url, {"notes": "Invented meeting notes"})
         self.assertContains(response, "We discussed the role.")
         self.assertContains(response, "Invented meeting notes")
+        html = response.content.decode()
+        self.assertLess(html.index('id="summary-title"'), html.index('name="notes"'))
+        self.assertContains(response, 'maxlength="12000"')
         self.assertNotContains(response, "test-secret-key")
         self.assertNotContains(response, "test-model-only")
         self.assertFalse(any(q["sql"].lstrip().upper().startswith(
@@ -177,4 +183,3 @@ class SummaryPageTests(TestCase):
         with patch("summaries.views.summarize_notes") as call:
             self.assertEqual(client.post(self.url, {"notes": "notes"}).status_code, 403)
             call.assert_not_called()
-

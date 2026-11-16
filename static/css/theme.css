@@ -215,7 +215,7 @@ body.public { min-height: 100vh; }
 
 .app-tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 1030;
-  display: grid; grid-template-columns: repeat(3, 1fr);
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
   height: calc(var(--oc-tabbar-height) + env(safe-area-inset-bottom));
   padding: 0 8px env(safe-area-inset-bottom);
   background: rgba(255, 255, 255, .96); border-top: 1px solid var(--oc-line);

@@ -1,5 +1,5 @@
 {% with view=request.resolver_match.view_name %}
-<nav class="app-tabbar" aria-label="Main" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+<nav class="app-tabbar" aria-label="Main">
   <a href="{% url 'contacts:list' %}" class="app-tab{% if nav_active == 'contacts' and view != 'contacts:create' %} active{% endif %}"
      {% if nav_active == 'contacts' and view != 'contacts:create' %}aria-current="page"{% endif %}>
     <i class="bi bi-people" aria-hidden="true"></i><span>Contacts</span>
