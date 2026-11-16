@@ -1,4 +1,5 @@
 import json
+from http.client import HTTPException
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -46,6 +47,11 @@ def summarize_notes(notes):
         content = choice["message"]["content"]
         if not isinstance(content, str):
             raise ValueError("Non-text response")
+        content = content.strip()
+        lines = content.splitlines()
+        if (len(lines) >= 3 and lines[0].strip().lower() in ("```json", "```")
+                and lines[-1].strip() == "```"):
+            content = "\n".join(lines[1:-1])
         result = json.loads(content)
         sentences = result["sentences"]
         if (not isinstance(sentences, list) or len(sentences) not in (2, 3)
@@ -53,7 +59,7 @@ def summarize_notes(notes):
                        for s in sentences)):
             raise ValueError("Invalid summary")
         return " ".join(s.strip() for s in sentences)
-    except (URLError, OSError, TimeoutError):
+    except (URLError, OSError, TimeoutError, HTTPException):
         raise SummaryError("The AI service could not respond. Your notes are still here. Try again.") from None
     except (ValueError, KeyError, IndexError, TypeError, AttributeError, UnicodeError):
         raise SummaryError("The AI returned an unusable summary. Your notes are still here. Try again.") from None

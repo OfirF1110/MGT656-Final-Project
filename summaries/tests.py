@@ -1,4 +1,5 @@
 import json
+from http.client import IncompleteRead
 from unittest.mock import patch
 from urllib.error import URLError
 
@@ -37,6 +38,24 @@ class ServiceTests(SimpleTestCase):
     def test_three_sentences(self):
         summary, _ = self.call_with(response_bytes(["First fact.", "Second fact.", "Third fact."]))
         self.assertEqual(summary, "First fact. Second fact. Third fact.")
+
+    def test_fenced_json_summary(self):
+        for fence in ("```json", "```", "```JSON"):
+            with self.subTest(fence=fence):
+                data = json.loads(response_bytes())
+                content = data["choices"][0]["message"]["content"]
+                data["choices"][0]["message"]["content"] = f"  \n{fence}\n{content}\n```\n "
+                summary, _ = self.call_with(json.dumps(data).encode())
+                self.assertEqual(summary, "We discussed the role. The team values collaboration.")
+
+    def test_fences_do_not_bypass_validation(self):
+        valid = json.dumps({"sentences": ["First fact.", "Second fact."]})
+        for content in (f"```json\n{valid}", f"Explanation\n```json\n{valid}\n```",
+                        "```json\nnot json\n```", '```json\n{"sentences": ["Only one."]}\n```'):
+            with self.subTest(content=content), self.assertRaises(SummaryError):
+                data = json.loads(response_bytes())
+                data["choices"][0]["message"]["content"] = content
+                self.call_with(json.dumps(data).encode())
 
     def test_malformed_outputs(self):
         invalid = [b"not json", b"null", b"[]", b"{}", b'{"choices":[]}',
@@ -137,6 +156,20 @@ class SummaryPageTests(TestCase):
             response = self.client.post(self.url, {"notes": "notes"})
         self.assertNotContains(response, "<script>alert(1)</script>")
         self.assertContains(response, "&lt;script&gt;")
+
+    @override_settings(OPENROUTER_API_KEY="test-secret-key", OPENROUTER_MODEL="test-model-only")
+    def test_interrupted_response_keeps_notes_without_500(self):
+        notes = "  Original notes\n<script>alert(1)</script>  "
+        with patch("summaries.services.urlopen") as call:
+            call.return_value.__enter__.return_value.read.side_effect = IncompleteRead(
+                b"private upstream response", 100)
+            response = self.client.post(self.url, {"notes": notes})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["form"]["notes"].value(), notes)
+        self.assertContains(response, "Your notes are still here")
+        self.assertNotContains(response, "private upstream response")
+        self.assertNotContains(response, "test-secret-key")
+        self.assertNotContains(response, "<script>alert(1)</script>")
 
     def test_csrf_is_required(self):
         client = Client(enforce_csrf_checks=True)
