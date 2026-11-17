@@ -1,7 +1,7 @@
 import json
 from http.client import IncompleteRead
 from unittest.mock import patch
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, SimpleTestCase, override_settings, Client
@@ -130,6 +130,21 @@ class ServiceTests(SimpleTestCase):
                     summarize_notes("notes")
                 self.assertNotIn("secret-key", str(caught.exception))
                 self.assertNotIn("private notes", str(caught.exception))
+
+    def test_http_errors_log_only_status_without_retry(self):
+        for code in (401, 404, 429, 500, "private status"):
+            error = HTTPError("https://example.invalid/private-key", code,
+                              "private provider detail", {"X-Private": "secret"}, None)
+            with self.subTest(code=code), patch("summaries.services.urlopen", side_effect=error) as call:
+                with self.assertLogs("summaries.services", "WARNING") as logs:
+                    with self.assertRaises(SummaryError) as caught:
+                        summarize_notes("private notes")
+                status = code if isinstance(code, int) else "unknown"
+                self.assertEqual(logs.output, [
+                    f"WARNING:summaries.services:AI summary failed: category=transport http_status={status}"])
+                self.assertIsNone(logs.records[0].exc_info)
+                self.assertNotIn("private", str(caught.exception))
+                call.assert_called_once()
 
     def test_missing_configuration_never_calls_provider(self):
         for config in [{"OPENROUTER_API_KEY": ""}, {"OPENROUTER_MODEL": ""}]:

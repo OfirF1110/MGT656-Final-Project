@@ -45,9 +45,14 @@ grader passwords, database URLs, session secrets or API keys in source files.
 ## AI notes summary (#24)
 
 Set OPENROUTER_API_KEY and OPENROUTER_MODEL in the server environment. Both
-are required for summaries; never commit their values. Choose a text chat model
-that can return the requested JSON. The app uses OpenRouter's server-side chat
-completions endpoint, a 20-second timeout and a 500-token output limit.
+are required for summaries; never commit their values. Choose a model/provider
+that supports structured outputs with strict JSON Schema: the request sets
+`response_format=json_schema` and `provider.require_parameters=true`, so an
+incompatible endpoint cannot silently ignore the schema. The app uses OpenRouter's
+server-side chat completions endpoint, a 20-second timeout and a 1000-token output
+limit (a maximum, not a target summary length). HTTP failures log only the status
+code, never notes, credentials or provider response details. Status codes help
+diagnosis but do not by themselves prove the cause of a failure.
 
 Visit /summaries/ after logging in. Paste notes and select "Summarize with AI".
 This first slice displays a two- or three-sentence summary without saving notes

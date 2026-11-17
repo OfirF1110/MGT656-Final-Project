@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from http.client import HTTPException
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from django.conf import settings
@@ -127,6 +127,11 @@ def summarize_notes(notes):
             if PROTOCOL_FRAGMENT.search(sentence):
                 raise ValueError("Invalid summary")
         return " ".join(s.strip() for s in sentences)
+    except HTTPError as error:
+        # Log only the numeric status, never the URL, body, headers or reason.
+        status = error.code if type(error.code) is int and 100 <= error.code <= 599 else "unknown"
+        logger.warning("AI summary failed: category=transport http_status=%s", status)
+        raise SummaryError("The AI service could not respond. Your notes are still here. Try again.") from None
     except (URLError, OSError, TimeoutError, HTTPException):
         logger.warning("AI summary failed: category=transport")
         raise SummaryError("The AI service could not respond. Your notes are still here. Try again.") from None
