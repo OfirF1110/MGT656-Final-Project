@@ -87,6 +87,42 @@ class ServiceTests(SimpleTestCase):
                     summarize_notes("notes")
                 call.assert_not_called()
 
+    def test_diagnostics_log_only_safe_categories(self):
+        cases = [
+            (b"private response", "envelope_json"),
+            (b'{}', "envelope_shape"),
+            (b'{"error":{"message":"private provider detail"}}', "provider_error"),
+            (b"x" * 65537, "response_too_large"),
+            (response_bytes(["Only one private sentence."]), "sentence_validation"),
+        ]
+        for content, category in [("private output", "summary_json"),
+                                  ('{"private-key": "private value"}', "summary_shape"),
+                                  (None, "content_shape")]:
+            data = json.loads(response_bytes())
+            data["choices"][0]["message"]["content"] = content
+            cases.append((json.dumps(data).encode(), category))
+        for reason, category in [("length", "finish_length"),
+                                 ("private provider reason", "finish_other")]:
+            data = json.loads(response_bytes())
+            data["choices"][0]["finish_reason"] = reason
+            cases.append((json.dumps(data).encode(), category))
+        for raw, category in cases:
+            with self.subTest(category=category), self.assertLogs("summaries.services", "WARNING") as logs:
+                with self.assertRaises(SummaryError):
+                    self.call_with(raw)
+            self.assertEqual(logs.output, [
+                f"WARNING:summaries.services:AI summary failed: category={category}"])
+            self.assertIsNone(logs.records[0].exc_info)
+
+    def test_transport_logs_never_include_exception_or_notes(self):
+        with patch("summaries.services.urlopen", side_effect=URLError("private secret")):
+            with self.assertLogs("summaries.services", "WARNING") as logs:
+                with self.assertRaises(SummaryError):
+                    summarize_notes("private notes")
+        self.assertEqual(logs.output, [
+            "WARNING:summaries.services:AI summary failed: category=transport"])
+        self.assertIsNone(logs.records[0].exc_info)
+
 @override_settings(SECURE_SSL_REDIRECT=False)
 class SummaryPageTests(TestCase):
     @classmethod

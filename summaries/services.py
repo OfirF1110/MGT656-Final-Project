@@ -1,4 +1,5 @@
 import json
+import logging
 from http.client import HTTPException
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -7,6 +8,7 @@ from django.conf import settings
 
 ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 MAX_RESPONSE_BYTES = 65536
+logger = logging.getLogger(__name__)
 
 class SummaryError(Exception):
     """Safe to show to the user; never contains provider responses or credentials."""
@@ -33,17 +35,28 @@ def summarize_notes(notes):
     request = Request(ENDPOINT, data=json.dumps(payload).encode("utf-8"),
                       headers={"Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
                                "Content-Type": "application/json"}, method="POST")
+    failure = "response_read"
     try:
         with urlopen(request, timeout=20) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)
         if len(raw) > MAX_RESPONSE_BYTES:
+            failure = "response_too_large"
             raise ValueError("Oversized response")
+        failure = "envelope_json"
         data = json.loads(raw)
+        failure = "envelope_shape"
         if data.get("error"):
+            failure = "provider_error"
             raise ValueError("Provider error")
         choice = data["choices"][0]
         if choice.get("finish_reason") != "stop":
+            # Only fixed categories go to logs, never provider-controlled text.
+            reason = choice.get("finish_reason")
+            failure = ("finish_" + reason if reason in
+                       ("length", "content_filter", "tool_calls", "error")
+                       else "finish_other")
             raise ValueError("Incomplete response")
+        failure = "content_shape"
         content = choice["message"]["content"]
         if not isinstance(content, str):
             raise ValueError("Non-text response")
@@ -52,14 +65,19 @@ def summarize_notes(notes):
         if (len(lines) >= 3 and lines[0].strip().lower() in ("```json", "```")
                 and lines[-1].strip() == "```"):
             content = "\n".join(lines[1:-1])
+        failure = "summary_json"
         result = json.loads(content)
+        failure = "summary_shape"
         sentences = result["sentences"]
+        failure = "sentence_validation"
         if (not isinstance(sentences, list) or len(sentences) not in (2, 3)
                 or any(not isinstance(s, str) or not s.strip() or len(s) > 1000
                        for s in sentences)):
             raise ValueError("Invalid summary")
         return " ".join(s.strip() for s in sentences)
     except (URLError, OSError, TimeoutError, HTTPException):
+        logger.warning("AI summary failed: category=transport")
         raise SummaryError("The AI service could not respond. Your notes are still here. Try again.") from None
     except (ValueError, KeyError, IndexError, TypeError, AttributeError, UnicodeError):
+        logger.warning("AI summary failed: category=%s", failure)
         raise SummaryError("The AI returned an unusable summary. Your notes are still here. Try again.") from None
