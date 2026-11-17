@@ -18,6 +18,29 @@ def summarize_notes(notes):
         raise SummaryError("AI summaries are not configured yet. Try again later.")
     payload = {
         "model": settings.OPENROUTER_MODEL,
+        # Require a compatible endpoint instead of silently ignoring the schema.
+        "provider": {"require_parameters": True},
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "meeting_summary",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "sentences": {
+                            "type": "array",
+                            "description": "Two or three short sentences, one complete sentence per item.",
+                            "minItems": 2,
+                            "maxItems": 3,
+                            "items": {"type": "string", "minLength": 1, "maxLength": 1000},
+                        },
+                    },
+                    "required": ["sentences"],
+                    "additionalProperties": False,
+                },
+            },
+        },
         "messages": [
             {"role": "system", "content": (
                 "Summarize the supplied networking meeting notes faithfully. "

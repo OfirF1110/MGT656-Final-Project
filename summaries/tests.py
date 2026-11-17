@@ -39,6 +39,30 @@ class ServiceTests(SimpleTestCase):
         summary, _ = self.call_with(response_bytes(["First fact.", "Second fact.", "Third fact."]))
         self.assertEqual(summary, "First fact. Second fact. Third fact.")
 
+    def test_request_enforces_structured_summary_contract(self):
+        _, call = self.call_with(response_bytes())
+        body = json.loads(call.call_args.args[0].data)
+        self.assertEqual(body["provider"], {"require_parameters": True})
+        output = body["response_format"]
+        self.assertEqual(output["type"], "json_schema")
+        self.assertTrue(output["json_schema"]["strict"])
+        schema = output["json_schema"]["schema"]
+        self.assertEqual(schema["required"], ["sentences"])
+        self.assertFalse(schema["additionalProperties"])
+        self.assertEqual(schema["properties"]["sentences"]["minItems"], 2)
+        self.assertEqual(schema["properties"]["sentences"]["maxItems"], 3)
+        self.assertEqual(schema["properties"]["sentences"]["items"],
+                         {"type": "string", "minLength": 1, "maxLength": 1000})
+        call.assert_called_once()
+
+    def test_one_item_response_is_still_rejected_without_retry(self):
+        with patch("summaries.services.urlopen") as call:
+            call.return_value.__enter__.return_value.read.return_value = response_bytes(
+                ["First sentence. Second sentence."])
+            with self.assertRaises(SummaryError):
+                summarize_notes("Invented notes")
+            call.assert_called_once()
+
     def test_fenced_json_summary(self):
         for fence in ("```json", "```", "```JSON"):
             with self.subTest(fence=fence):
