@@ -93,7 +93,7 @@ class ServiceTests(SimpleTestCase):
             (b'{}', "envelope_shape"),
             (b'{"error":{"message":"private provider detail"}}', "provider_error"),
             (b"x" * 65537, "response_too_large"),
-            (response_bytes(["Only one private sentence."]), "sentence_validation"),
+            (response_bytes(["Only one private sentence."]), "sentence_count_1"),
         ]
         for content, category in [("private output", "summary_json"),
                                   ('{"private-key": "private value"}', "summary_shape"),
@@ -122,6 +122,26 @@ class ServiceTests(SimpleTestCase):
         self.assertEqual(logs.output, [
             "WARNING:summaries.services:AI summary failed: category=transport"])
         self.assertIsNone(logs.records[0].exc_info)
+
+    def test_sentence_diagnostics_distinguish_each_constraint(self):
+        cases = [
+            ("private text", "sentences_not_list"),
+            (None, "sentences_not_list"),
+            ([], "sentence_count_0"),
+            (["A."] * 4, "sentence_count_4"),
+            (["A.", {"private": "value"}], "sentence_not_text"),
+            (["A.", " \n\t"], "sentence_empty"),
+            (["A.", "x" * 1001], "sentence_too_long"),
+        ]
+        for sentences, category in cases:
+            data = json.loads(response_bytes())
+            data["choices"][0]["message"]["content"] = json.dumps({"sentences": sentences})
+            with self.subTest(category=category), self.assertLogs("summaries.services", "WARNING") as logs:
+                with self.assertRaises(SummaryError):
+                    self.call_with(json.dumps(data).encode())
+            self.assertEqual(logs.output, [
+                f"WARNING:summaries.services:AI summary failed: category={category}"])
+            self.assertIsNone(logs.records[0].exc_info)
 
 @override_settings(SECURE_SSL_REDIRECT=False)
 class SummaryPageTests(TestCase):

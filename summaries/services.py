@@ -69,11 +69,22 @@ def summarize_notes(notes):
         result = json.loads(content)
         failure = "summary_shape"
         sentences = result["sentences"]
-        failure = "sentence_validation"
-        if (not isinstance(sentences, list) or len(sentences) not in (2, 3)
-                or any(not isinstance(s, str) or not s.strip() or len(s) > 1000
-                       for s in sentences)):
+        failure = "sentences_not_list"
+        if not isinstance(sentences, list):
             raise ValueError("Invalid summary")
+        failure = f"sentence_count_{len(sentences)}"
+        if len(sentences) not in (2, 3):
+            raise ValueError("Invalid summary")
+        for sentence in sentences:
+            failure = "sentence_not_text"
+            if not isinstance(sentence, str):
+                raise ValueError("Invalid summary")
+            failure = "sentence_empty"
+            if not sentence.strip():
+                raise ValueError("Invalid summary")
+            failure = "sentence_too_long"
+            if len(sentence) > 1000:
+                raise ValueError("Invalid summary")
         return " ".join(s.strip() for s in sentences)
     except (URLError, OSError, TimeoutError, HTTPException):
         logger.warning("AI summary failed: category=transport")
