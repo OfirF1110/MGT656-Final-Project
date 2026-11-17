@@ -23,6 +23,14 @@ PROTOCOL_FRAGMENT = re.compile(
 class SummaryError(Exception):
     """Safe to show to the user; never contains provider responses or credentials."""
 
+def unwrap_json_fence(content):
+    content = content.strip()
+    lines = content.splitlines()
+    if (len(lines) >= 3 and lines[0].strip().lower() in ("```json", "```")
+            and lines[-1].strip() == "```"):
+        return "\n".join(lines[1:-1])
+    return content
+
 def log_length_diagnostics(data, choice):
     """Record only bounded counts and a JSON syntax flag, never provider text."""
     def count(value):
@@ -38,7 +46,7 @@ def log_length_diagnostics(data, choice):
     json_complete = None
     if isinstance(content, str):
         try:
-            json.loads(content)
+            json.loads(unwrap_json_fence(content))
             json_complete = True
         except (ValueError, RecursionError):
             json_complete = False
@@ -127,13 +135,8 @@ def summarize_notes(notes):
         content = choice["message"]["content"]
         if not isinstance(content, str):
             raise ValueError("Non-text response")
-        content = content.strip()
-        lines = content.splitlines()
-        if (len(lines) >= 3 and lines[0].strip().lower() in ("```json", "```")
-                and lines[-1].strip() == "```"):
-            content = "\n".join(lines[1:-1])
         failure = "summary_json"
-        result = json.loads(content)
+        result = json.loads(unwrap_json_fence(content))
         failure = "summary_shape"
         sentences = result["sentences"]
         failure = "sentences_not_list"

@@ -181,6 +181,8 @@ class ServiceTests(SimpleTestCase):
 
     def test_length_diagnostics_counts_and_json_syntax_without_accepting_output(self):
         for content, complete in [(' {"sentences": ["private text"]}', True),
+                                  ('```JSON\n{"sentences": ["private text"]}\n```', True),
+                                  ('```json\n{"sentences": ["private text\n```', False),
                                   ('{"sentences": ["private text', False),
                                   ("", False), (None, None)]:
             data = {"choices": [{"finish_reason": "length", "message": {"content": content}}],
