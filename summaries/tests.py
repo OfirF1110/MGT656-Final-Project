@@ -167,8 +167,7 @@ class ServiceTests(SimpleTestCase):
             data = json.loads(response_bytes())
             data["choices"][0]["message"]["content"] = content
             cases.append((json.dumps(data).encode(), category))
-        for reason, category in [("length", "finish_length"),
-                                 ("private provider reason", "finish_other")]:
+        for reason, category in [("private provider reason", "finish_other")]:
             data = json.loads(response_bytes())
             data["choices"][0]["finish_reason"] = reason
             cases.append((json.dumps(data).encode(), category))
@@ -179,6 +178,43 @@ class ServiceTests(SimpleTestCase):
             self.assertEqual(logs.output, [
                 f"WARNING:summaries.services:AI summary failed: category={category}"])
             self.assertIsNone(logs.records[0].exc_info)
+
+    def test_length_diagnostics_counts_and_json_syntax_without_accepting_output(self):
+        for content, complete in [(' {"sentences": ["private text"]}', True),
+                                  ('{"sentences": ["private text', False),
+                                  ("", False), (None, None)]:
+            data = {"choices": [{"finish_reason": "length", "message": {"content": content}}],
+                    "usage": {"prompt_tokens": 120, "completion_tokens": 1000,
+                              "total_tokens": 1120, "completion_tokens_details": {"reasoning_tokens": 0}}}
+            with self.subTest(content=content), patch("summaries.services.urlopen") as call:
+                call.return_value.__enter__.return_value.read.return_value = json.dumps(data).encode()
+                with self.assertLogs("summaries.services", "WARNING") as logs:
+                    with self.assertRaises(SummaryError):
+                        summarize_notes("private notes")
+                chars = len(content) if isinstance(content, str) else None
+                self.assertEqual(logs.output, [
+                    "WARNING:summaries.services:AI summary diagnostics: finish=length "
+                    f"prompt_tokens=120 completion_tokens=1000 total_tokens=1120 reasoning_tokens=0 "
+                    f"content_chars={chars} json_complete={complete}",
+                    "WARNING:summaries.services:AI summary failed: category=finish_length"])
+                self.assertTrue(all(record.exc_info is None for record in logs.records))
+                call.assert_called_once()
+
+    def test_length_diagnostics_sanitize_missing_and_untrusted_metadata(self):
+        for usage in [None, "private usage", {},
+                      {"prompt_tokens": True, "completion_tokens": "private secret",
+                       "total_tokens": -1, "completion_tokens_details": {"reasoning_tokens": 10000001}},
+                      {"completion_tokens_details": "private detail"}]:
+            data = {"choices": [{"finish_reason": "length", "message": "private message"}],
+                    "usage": usage, "model": "private model", "provider": "private provider"}
+            with self.subTest(usage=usage), self.assertLogs("summaries.services", "WARNING") as logs:
+                with self.assertRaises(SummaryError):
+                    self.call_with(json.dumps(data).encode())
+            self.assertEqual(logs.output, [
+                "WARNING:summaries.services:AI summary diagnostics: finish=length "
+                "prompt_tokens=None completion_tokens=None total_tokens=None reasoning_tokens=None "
+                "content_chars=None json_complete=None",
+                "WARNING:summaries.services:AI summary failed: category=finish_length"])
 
     def test_transport_logs_never_include_exception_or_notes(self):
         with patch("summaries.services.urlopen", side_effect=URLError("private secret")):

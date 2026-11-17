@@ -23,6 +23,33 @@ PROTOCOL_FRAGMENT = re.compile(
 class SummaryError(Exception):
     """Safe to show to the user; never contains provider responses or credentials."""
 
+def log_length_diagnostics(data, choice):
+    """Record only bounded counts and a JSON syntax flag, never provider text."""
+    def count(value):
+        return value if type(value) is int and 0 <= value <= 10000000 else None
+
+    usage = data.get("usage")
+    usage = usage if isinstance(usage, dict) else {}
+    details = usage.get("completion_tokens_details")
+    details = details if isinstance(details, dict) else {}
+    message = choice.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
+    content_chars = len(content) if isinstance(content, str) else None
+    json_complete = None
+    if isinstance(content, str):
+        try:
+            json.loads(content)
+            json_complete = True
+        except (ValueError, RecursionError):
+            json_complete = False
+    logger.warning(
+        "AI summary diagnostics: finish=length prompt_tokens=%s completion_tokens=%s "
+        "total_tokens=%s reasoning_tokens=%s content_chars=%s json_complete=%s",
+        count(usage.get("prompt_tokens")), count(usage.get("completion_tokens")),
+        count(usage.get("total_tokens")), count(details.get("reasoning_tokens")),
+        content_chars, json_complete,
+    )
+
 def summarize_notes(notes):
     if not settings.OPENROUTER_API_KEY or not settings.OPENROUTER_MODEL:
         raise SummaryError("AI summaries are not configured yet. Try again later.")
@@ -90,6 +117,8 @@ def summarize_notes(notes):
         if choice.get("finish_reason") != "stop":
             # Only fixed categories go to logs, never provider-controlled text.
             reason = choice.get("finish_reason")
+            if reason == "length":
+                log_length_diagnostics(data, choice)
             failure = ("finish_" + reason if reason in
                        ("length", "content_filter", "tool_calls", "error")
                        else "finish_other")
