@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from http.client import HTTPException
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -9,6 +10,15 @@ from django.conf import settings
 ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 MAX_RESPONSE_BYTES = 65536
 logger = logging.getLogger(__name__)
+# Detect explicit serialization/protocol artifacts, not ordinary mentions of roles.
+PROTOCOL_FRAGMENT = re.compile(
+    r"```|<\|[^>\r\n]{1,80}\|>|\[/?INST\]|"
+    r"\b(?:assistant|system|user)\s*\{|"
+    r"\{\s*[\"']?sentences[\"']?\s*:|"
+    r"#(?:conversation_id|message_id)\b|"
+    r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]",
+    re.IGNORECASE,
+)
 
 class SummaryError(Exception):
     """Safe to show to the user; never contains provider responses or credentials."""
@@ -48,6 +58,11 @@ def summarize_notes(notes):
                 "Return ONLY a JSON object with one key, sentences, containing "
                 "an array of exactly two or three short complete sentences. "
                 "Each array item must contain one sentence. Use the notes' language. "
+                "Be concise: remove repetition and filler; do not expand already brief notes. "
+                "Preserve the key conclusion and any stated owner or deadline. "
+                "Do not invent details to reach the required sentence count. "
+                "Return only the summary, without greetings, questions to the reader, "
+                "offers of further help, role labels, protocol tokens or nested JSON text. "
                 "Do not include markdown, attendees lists, or follow-up suggestions."
             )},
             {"role": "user", "content": notes},
@@ -107,6 +122,9 @@ def summarize_notes(notes):
                 raise ValueError("Invalid summary")
             failure = "sentence_too_long"
             if len(sentence) > 1000:
+                raise ValueError("Invalid summary")
+            failure = "sentence_protocol_fragment"
+            if PROTOCOL_FRAGMENT.search(sentence):
                 raise ValueError("Invalid summary")
         return " ".join(s.strip() for s in sentences)
     except (URLError, OSError, TimeoutError, HTTPException):

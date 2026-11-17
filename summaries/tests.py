@@ -40,6 +40,32 @@ class ServiceTests(SimpleTestCase):
         summary, _ = self.call_with(response_bytes(["First fact.", "Second fact.", "Third fact."]))
         self.assertEqual(summary, "First fact. Second fact. Third fact.")
 
+    def test_protocol_fragments_are_rejected_without_logging_content(self):
+        fragments = [
+            'The budget is undecided. assistant{ sentences : ["Extra text."]}',
+            'The budget is undecided. {"sentences": ["Extra text."]}',
+            "The budget is undecided. <|im_start|>assistant",
+            "The budget is undecided. [INST]continue[/INST]",
+            "The budget is undecided. #conversation_id private-id",
+            "The budget is undecided. #message_id private-id",
+            "The budget is undecided.\x81",
+            "The budget is undecided. ```json",
+        ]
+        for fragment in fragments:
+            with self.subTest(fragment=repr(fragment)), self.assertLogs("summaries.services", "WARNING") as logs:
+                with self.assertRaises(SummaryError):
+                    self.call_with(response_bytes(["We discussed the workshop.", fragment]))
+            self.assertEqual(logs.output, [
+                "WARNING:summaries.services:AI summary failed: category=sentence_protocol_fragment"])
+
+    def test_normal_roles_quotes_and_multilingual_text_are_preserved(self):
+        sentences = [
+            'The assistant discussed user research with Dr. Lee and quoted "keep it simple".',
+            "团队将在周五确认预算，预计为 $1,000.50。",
+        ]
+        summary, _ = self.call_with(response_bytes(sentences))
+        self.assertEqual(summary, " ".join(sentences))
+
     def test_request_enforces_structured_summary_contract(self):
         _, call = self.call_with(response_bytes())
         body = json.loads(call.call_args.args[0].data)
@@ -243,6 +269,19 @@ class SummaryPageTests(TestCase):
             response = self.client.post(self.url, {"notes": "notes"})
         self.assertNotContains(response, "<script>alert(1)</script>")
         self.assertContains(response, "&lt;script&gt;")
+
+    @override_settings(OPENROUTER_API_KEY="test-secret-key", OPENROUTER_MODEL="test-model-only")
+    def test_protocol_fragment_shows_error_and_preserves_notes(self):
+        notes = "Fictional workshop notes."
+        with patch("summaries.services.urlopen") as call:
+            call.return_value.__enter__.return_value.read.return_value = response_bytes(
+                ["We discussed the workshop.", 'assistant{ sentences: ["private fragment"]}'])
+            response = self.client.post(self.url, {"notes": notes})
+        self.assertContains(response, "Your notes are still here")
+        self.assertEqual(response.context["form"]["notes"].value(), notes)
+        self.assertNotContains(response, "private fragment")
+        self.assertNotContains(response, 'id="summary-title"')
+        call.assert_called_once()
 
     @override_settings(OPENROUTER_API_KEY="test-secret-key", OPENROUTER_MODEL="test-model-only")
     def test_interrupted_response_keeps_notes_without_500(self):
