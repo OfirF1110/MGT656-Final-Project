@@ -32,6 +32,7 @@ class ServiceTests(SimpleTestCase):
         self.assertEqual(request.get_header("Authorization"), "Bearer test-key-only")
         body = json.loads(request.data)
         self.assertEqual(body["model"], "test-model-only")
+        self.assertEqual(body["max_tokens"], 1000)
         self.assertEqual(body["messages"][-1]["content"], "Invented notes")
         self.assertEqual(call.call_args.kwargs["timeout"], 20)
 

@@ -52,7 +52,7 @@ def summarize_notes(notes):
             )},
             {"role": "user", "content": notes},
         ],
-        "max_tokens": 500,
+        "max_tokens": 1000,
         "stream": False,
     }
     request = Request(ENDPOINT, data=json.dumps(payload).encode("utf-8"),
