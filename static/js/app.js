@@ -5,6 +5,37 @@
 
   var TOAST_MS = 4000;
 
+  // Prevent repeated AI submissions while the normal POST is navigating.
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (!form.matches("[data-summary-form]") || event.defaultPrevented) return;
+    if (form.dataset.submitting === "true") {
+      event.preventDefault();
+      return;
+    }
+    var button = form.querySelector('button[type="submit"]');
+    if (!button) return;
+    form.dataset.submitting = "true";
+    form.setAttribute("aria-busy", "true");
+    button.dataset.originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = "Summarizing…";
+  });
+
+  // Back/forward navigation may restore the disabled button from browser cache.
+  window.addEventListener("pageshow", function () {
+    document.querySelectorAll("[data-summary-form]").forEach(function (form) {
+      delete form.dataset.submitting;
+      form.removeAttribute("aria-busy");
+      var button = form.querySelector('button[type="submit"]');
+      if (button && button.dataset.originalLabel) {
+        button.disabled = false;
+        button.textContent = button.dataset.originalLabel;
+        delete button.dataset.originalLabel;
+      }
+    });
+  });
+
   function dismiss(el) {
     el.classList.add("is-leaving");
     setTimeout(function () { el.remove(); }, 220);

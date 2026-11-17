@@ -1,0 +1,24 @@
+{% extends 'app.html' %}
+{% block title %}Summarize notes · OfferChat{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1 class="page-title">Summarize notes</h1>
+  <p class="page-meta">Turn rough meeting notes into a short summary.</p></div>
+</header>
+{% if summary %}
+<section class="panel mb-4" aria-labelledby="summary-title" role="status">
+  <h2 class="panel-title" id="summary-title">Summary</h2>
+  <p>{{ summary }}</p>
+  <p class="form-text">AI-generated. Check the details against your notes.</p>
+</section>
+{% endif %}
+<section class="panel">
+  <form method="post" action="{% url 'summaries:create' %}" data-summary-form novalidate>
+    {% csrf_token %}
+    {% include 'components/_field.html' with field=form.notes %}
+    {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+    <button class="btn btn-primary" type="submit">Summarize with AI</button>
+    <p class="form-text mt-3">Notes and summaries are not saved in OfferChat. Copy anything you want to keep before leaving.</p>
+  </form>
+</section>
+{% endblock %}

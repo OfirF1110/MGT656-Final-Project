@@ -41,12 +41,12 @@ Three tiers. The shell switches at **1024px**; components switch at the widths b
 | Width | Shell | Components |
 |---|---|---|
 | ≥ 1024px | Dark 232px sidebar | Table rows; header Edit/Delete; popover menus; detail page two columns from 1200px |
-| 768–1023px (tablets) | Sticky top bar + bottom tab bar (Contacts · Add · Account) | Table rows; Edit in top bar, Edit/Delete at page end; sticky form actions; detail two columns from 900px |
+| 768–1023px (tablets) | Sticky top bar + bottom tab bar (Contacts · Add · Summarize · Account) | Table rows; Edit in top bar, Edit/Delete at page end; sticky form actions; detail two columns from 900px |
 | < 768px (phones) | Same as tablets | Rows become cards; stage menu becomes a bottom sheet; fields stack under 600px |
 
 Patterns we reuse from our other apps (zhiji, headsup, intake, yale-radar):
 - `viewport-fit=cover` and `env(safe-area-inset-*)` on every fixed bar (top bar, tab bar, sheets).
-- Bottom tab bar on touch layouts, with a round accent **Add** in the middle for the main action.
+- Bottom tab bar on touch layouts has four equal columns. The round accent **Add** is the second item, centred within its column, not the whole bar.
 - The tab bar slides away while a text field has focus (`body.kbd-open`, set in `app.js`).
 - The form's Save/Cancel bar sticks above the tab bar, within thumb reach.
 - Menus become bottom sheets on phones: grip, `88dvh` max, `overscroll-behavior: contain`, tap outside to close.
