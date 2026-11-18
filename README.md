@@ -58,7 +58,7 @@ Set configuration in your shell environment (see `.env.example` for variable nam
 Django does not load `.env` files automatically. Never commit actual credentials.
 
 - `SECRET_KEY`: a random secret; use a separate value for each environment.
-- `DEBUG`: `true` for local development, `false` on staging.
+- `DEBUG`: `true` for local development, `false` on staging and production.
 - `DATABASE_URL`: the Neon Postgres connection string, including TLS options.
   Local development can use SQLite if DEBUG is true and this variable is absent.
 - `ALLOWED_HOSTS`: comma-separated hostnames. Render's hostname is added automatically.
@@ -115,10 +115,34 @@ finally {
 Tests cover successful/failed login, protected-page redirects, logout,
 grader permissions, repeated seeding and seed failure handling.
 
-## Staging Deployment
+## Staging and Production Deployment
+
+| Environment | App URL | Neon project |
+|---|---|---|
+| Staging | https://offerchat-staging.onrender.com | `mgt656-staging` |
+| Production | https://offerchat-production.onrender.com | `mgt656-production` |
+
+Production is a separate Render web service running `main`, with its own Neon
+PostgreSQL database (`offerchat_production`). Configure a separate `SECRET_KEY`
+and the appropriate `DATABASE_URL` in each service's private environment settings.
+Keep all grader passwords and connection strings out of git.
 
 See `DEVELOPMENT.md` and `render.yaml` for the Render + Neon setup.
 Build: `bash build.sh` (dependencies, static files, migrations and seed).
 Start: `gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -`.
 Set the private environment variables before deployment, then verify both accounts
-on staging. Do not mark deployment complete based only on local test results.
+on each environment. Do not mark deployment complete based only on local test results.
+
+Production was verified on November 15, 2026, at commit `48b0a0b`:
+
+- Migrations and seed completed during deployment; seed added 16 demo contacts.
+- Both grader accounts logged in and each displayed 8 sample contacts.
+- The admin grader could access Django administration.
+- [Health check](https://offerchat-production.onrender.com/health/) returned `{"status": "ok"}`.
+- [A/B page](https://offerchat-production.onrender.com/020c45f) displayed the team
+  nicknames and its variant button; [stats](https://offerchat-production.onrender.com/020c45f/stats)
+  returned JSON including `preferred`.
+
+The services use Render's free plan and may take time to wake after inactivity.
+Deploy future releases manually from Render's **Manual Deploy > Deploy latest commit**
+after review and merge, then repeat the checks above.
